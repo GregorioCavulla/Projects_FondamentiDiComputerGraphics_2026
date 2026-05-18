@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebGL Stencil Mirror</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; }
+        canvas { width: 100vw; height: 100vh; display: block; }
+        #info { position: absolute; top: 10px; left: 10px; color: white; background: rgba(0,0,0,0.5); padding: 10px; pointer-events: none; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div id="info"><br>Trascina per orbitare | Rotella per Zoom</div>
+    <canvas id="glCanvas"></canvas>
+    
+    <script id="vs" type="x-shader/x-vertex">
+    attribute vec4 a_pos; 
+    attribute vec4 a_col; 
+    uniform mat4 u_m; 
+    varying vec4 v_c; 
+    void main(){
+        gl_Position=u_m*a_pos; 
+        v_c=a_col;
+    }
+    </script>
+    <script id="fs" type="x-shader/x-fragment">
+    precision mediump float; 
+    varying vec4 v_c; 
+    void main(){
+        gl_FragColor=v_c;
+    }
+    </script>
+    <script type="text/javascript" src="resources/lib/m4.js"></script>
+    <script>
+        const canvas = document.getElementById("glCanvas");
+        const gl = canvas.getContext("webgl", { stencil: true });
+
+        // --- SETUP SHADERS ---
+        function createProg(vsId, fsId) {
+            const vs = gl.createShader(gl.VERTEX_SHADER);
+            gl.shaderSource(vs, document.getElementById(vsId).text);
+            gl.compileShader(vs);
+            const fs = gl.createShader(gl.FRAGMENT_SHADER);
+            gl.shaderSource(fs, document.getElementById(fsId).text);
+            gl.compileShader(fs);
+            const p = gl.createProgram();
+            gl.attachShader(p, vs); 
+            gl.attachShader(p, fs);
+            gl.linkProgram(p);
+            return p;
+        }
+        const prog = createProg("vs", "fs");
+        const aPosLoc = gl.getAttribLocation(prog, "a_pos");
+        const aColLoc = gl.getAttribLocation(prog, "a_col");
+        const uMatLoc = gl.getUniformLocation(prog, "u_m");
+
+        // --- GEOMETRIA CUBO (24 vertici) ---
+        const pos = new Float32Array([
+            -0.5,-0.5,0.5, 0.5,-0.5,0.5, -0.5,0.5,0.5, -0.5,0.5,0.5, 0.5,-0.5,0.5, 0.5,0.5,0.5,
+            -0.5,-0.5,-0.5, -0.5,0.5,-0.5, 0.5,-0.5,-0.5, 0.5,-0.5,-0.5, -0.5,0.5,-0.5, 0.5,0.5,-0.5,
+            -0.5,0.5,-0.5, -0.5,0.5,0.5, 0.5,0.5,-0.5, 0.5,0.5,-0.5, -0.5,0.5,0.5, 0.5,0.5,0.5,
+            -0.5,-0.5,-0.5, 0.5,-0.5,-0.5, -0.5,-0.5,0.5, -0.5,-0.5,0.5, 0.5,-0.5,-0.5, 0.5,-0.5,0.5,
+            0.5,-0.5,-0.5, 0.5,0.5,-0.5, 0.5,-0.5,0.5, 0.5,-0.5,0.5, 0.5,0.5,-0.5, 0.5,0.5,0.5,
+            -0.5,-0.5,-0.5, -0.5,-0.5,0.5, -0.5,0.5,-0.5, -0.5,0.5,-0.5, -0.5,-0.5,0.5, -0.5,0.5,0.5
+        ]);
+        const cols = new Float32Array([
+            1,0,0,1, 1,0,0,1, 1,0,0,1, 1,0,0,1, 1,0,0,1, 1,0,0,1,
+            0,1,0,1, 0,1,0,1, 0,1,0,1, 0,1,0,1, 0,1,0,1, 0,1,0,1,
+            0,0,1,1, 0,0,1,1, 0,0,1,1, 0,0,1,1, 0,0,1,1, 0,0,1,1,
+            1,1,0,1, 1,1,0,1, 1,1,0,1, 1,1,0,1, 1,1,0,1, 1,1,0,1,
+            1,0,1,1, 1,0,1,1, 1,0,1,1, 1,0,1,1, 1,0,1,1, 1,0,1,1,
+            0,1,1,1, 0,1,1,1, 0,1,1,1, 0,1,1,1, 0,1,1,1, 0,1,1,1
+        ]);
+        const planeM = new Float32Array([-1.5,-1,0, 1.5,-1,0, -1.5,1,0, -1.5,1,0, 1.5,-1,0, 1.5,1,0]);
+        const planeBorder = new Float32Array([-1.5,-1,0, 1.5,-1,0, 1.5,1,0, -1.5,1,0, -1.5,-1,0]);
+        const planeBCols = new Float32Array([1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1]);
+
+        const bP = gl.createBuffer(); 
+        gl.bindBuffer(gl.ARRAY_BUFFER, bP); 
+        gl.bufferData(gl.ARRAY_BUFFER, pos, gl.STATIC_DRAW);
+        const bC = gl.createBuffer(); 
+        gl.bindBuffer(gl.ARRAY_BUFFER, bC); 
+        gl.bufferData(gl.ARRAY_BUFFER, cols, gl.STATIC_DRAW);
+        const bM = gl.createBuffer(); 
+        gl.bindBuffer(gl.ARRAY_BUFFER, bM); 
+        gl.bufferData(gl.ARRAY_BUFFER, planeM, gl.STATIC_DRAW);
+        const pP = gl.createBuffer(); 
+        gl.bindBuffer(gl.ARRAY_BUFFER, pP); 
+        gl.bufferData(gl.ARRAY_BUFFER, planeBorder, gl.STATIC_DRAW);
+        const pC = gl.createBuffer(); 
+        gl.bindBuffer(gl.ARRAY_BUFFER, pC); 
+        gl.bufferData(gl.ARRAY_BUFFER, planeBCols, gl.STATIC_DRAW);
+
+        // --- CONTROLLI CAMERA ---
+        let th = 0.5, ph = 0.3, dist = 6;
+        canvas.onmousemove = (e) => { if(e.buttons==1){ th -= e.movementX*0.01; ph = Math.max(-1.5, Math.min(1.5, ph + e.movementY*0.01)); } };
+        canvas.onwheel = (e) => { dist = Math.max(2, dist + e.deltaY*0.005); e.preventDefault(); };
+
+        function draw() {
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            gl.viewport(0, 0, canvas.width, canvas.height);
+            gl.clearColor(0.05, 0.05, 0.05, 1);
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
+
+            const camPos = [dist*Math.sin(th)*Math.cos(ph), dist*Math.sin(ph), dist*Math.cos(th)*Math.cos(ph)];
+            const target = [0, 0, 0];
+            const up = [0, 1, 0];
+            const view = m4.inverse(m4.lookAt(camPos, target, up));
+            const proj = m4.perspective(45*Math.PI/180, canvas.width/canvas.height, 0.1, 100);
+
+            gl.useProgram(prog);
+            gl.enable(gl.DEPTH_TEST);
+
+            // 1. DISEGNA CUBO REALE
+            render(bP, bC, m4.translate(m4.multiply(proj, view), 0, 0, 1.5), 24, [1,1,1,1]);
+
+            // 2. CREA MASCHERA STENCIL
+            gl.enable(gl.STENCIL_TEST);
+            gl.clearStencil(0x0);
+            gl.stencilFunc(gl.ALWAYS, 1, 0xFF);
+            gl.stencilOp(gl.KEEP, gl.KEEP, gl.REPLACE);
+            gl.colorMask(false, false, false, false);
+            gl.depthFunc(gl.ALWAYS);
+            gl.depthMask(false);
+            render(bM, null, m4.multiply(proj, view), 6, [0,0,0,0]);
+
+            // 3. DISEGNA RIFLESSIONE (solo dove stencil == 1)
+            gl.depthMask(true);
+            gl.colorMask(true, true, true, true);
+            gl.depthFunc(gl.LESS);
+            gl.stencilFunc(gl.EQUAL, 1, 0xFF);
+            
+            if (camPos[2] > 0) {
+                const reflectZ = [1,0,0,0, 0,1,0,0, 0,0,-1,0, 0,0,0,1];
+                const reflView = m4.multiply(view, reflectZ);
+                render(bP, bC, m4.translate(m4.multiply(proj, reflView), 0, 0, 1.5), 24, [1,1,1,1]);
+            }
+            gl.disable(gl.STENCIL_TEST);
+
+            // 4. DISEGNA IL RETRO DELLO SPECCHIO e/o LA CORNICE
+            if (camPos[2] <= 0) {            
+               render(bM, null, m4.multiply(proj, view), 6, [0.1, 0.1, 0.1, 1.0]);
+            }
+            renderBorder(pP, pC, m4.multiply(proj, view), 5);
+
+            requestAnimationFrame(draw);
+        }
+
+        function render(vBuf, cBuf, mat, count, fallbackCol) {
+            gl.uniformMatrix4fv(uMatLoc, false, mat);
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, vBuf);
+            gl.enableVertexAttribArray(aPosLoc);
+            gl.vertexAttribPointer(aPosLoc, 3, gl.FLOAT, false, 0, 0);
+
+            if (cBuf) {
+                gl.bindBuffer(gl.ARRAY_BUFFER, cBuf);
+                gl.enableVertexAttribArray(aColLoc);
+                gl.vertexAttribPointer(aColLoc, 4, gl.FLOAT, false, 0, 0);
+            } else {
+                gl.disableVertexAttribArray(aColLoc);
+                gl.vertexAttrib4fv(aColLoc, fallbackCol);
+            }
+            gl.drawArrays(gl.TRIANGLES, 0, count);
+        }
+
+        function renderBorder(vBuf, cBuf, mat, count) {
+            gl.uniformMatrix4fv(uMatLoc, false, mat);
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, vBuf);
+            gl.enableVertexAttribArray(aPosLoc);
+            gl.vertexAttribPointer(aPosLoc, 3, gl.FLOAT, false, 0, 0);
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, cBuf);
+            gl.enableVertexAttribArray(aColLoc);
+            gl.vertexAttribPointer(aColLoc, 4, gl.FLOAT, false, 0, 0);
+
+            gl.drawArrays(gl.LINE_STRIP, 0, count);
+        }
+        draw();
+    </script>
+</body>
+</html>

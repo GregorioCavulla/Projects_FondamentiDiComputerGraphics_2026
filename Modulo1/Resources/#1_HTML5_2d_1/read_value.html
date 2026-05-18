@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+<head>
+   <title>The Canvas Tag </title>
+   <body>
+     <style> #mycanvas{border-style: solid; border-width: 2px;}
+     </style>
+    </body>
+    </head>
+
+    <body>
+    <canvas width="400" height="400" id="mycanvas">
+      canvas tag not supported
+    </canvas>
+   
+    <script>
+    var radius;
+    var canvas, canvas_context;
+
+    function init() {
+     canvas = document.getElementById('mycanvas'); 
+     canvas_context = canvas.getContext("2d");
+    }
+    function myFunction() {
+     var x = document.getElementById("myNumber").value;
+     radius = Number(x);
+    }
+    function drawOnCanvas() {
+       canvas_context.strokeStyle = 'rgb(0,'+ radius.toString() +',0)';
+       canvas_context.beginPath();
+       canvas_context.arc(200, 200, radius, 0, 2 * Math.PI, false);
+       //canvas_context.closePath();
+       canvas_context.stroke();
+       radius = radius + 10;
+//       console.log("stampa di debug");
+//       console.log(radius);
+    }
+    function cancelCanvas() {
+      canvas_context.clearRect(0,0,400,400);
+    }
+    init();
+   </script>
+
+  <P>
+      <input type="number" id="myNumber" value="50">
+      <button onclick="myFunction()">Read</button>
+  </P>
+  <P>
+      <input type="Button" value= " Draw " onclick="drawOnCanvas()">
+      <input type="Button" value= " Cancel " onclick="cancelCanvas()">
+   </P>
+</body>
+</html>  

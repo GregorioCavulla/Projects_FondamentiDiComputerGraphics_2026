@@ -1,0 +1,19 @@
+Descrizione codici HTML5+canvas+webgl+JavaScript
+
+cube_reflect_mirror.html      disegna un cubo colorato aperto e lo riflette su
+                              uno piano specchio (gestione di render to texture)
+
+render2texture.html           esempio esplicito di come fare un rendering su
+                              una cube_texture_atlas
+
+transparency_webgl2.html      codice demo per la gestione dell'effetto trasparenza
+                              in webgl2
+
+cube_blended_skybox.html      visualizzazione di un cubo trasparente su uno skybox
+
+cube_stencil_mirror.html      disegna un cubo colorato aperto e lo riflette su
+                              uno piano specchio (gestione dello stencil)
+
+cg_car1.html + .js            progetto car passo 1
+
+cg_car2.html + .js            progetto car passo 2

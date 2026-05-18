@@ -1,0 +1,63 @@
+Descrizione codici HTML5+canvas+JavaScript
+
+open_canvas.html       il più semplice, apre un canvas con un bordo
+
+open_canvas_and_draw1.html come il precedene, ma in più disegna un rettangolo
+                           pieno
+
+draw_on_canvas0.html      disegna una crf su un canvas
+
+draw_on_canvas1.html      disegna una crf su un canvas e abilita un bottone Draw
+
+draw_on_canvas2.html      disegna o cancella in base a due bottoni Draw e Cancel
+                       una crf di raggio crescente
+
+read_value.html        permette di dare in input il numero di vertici di un
+                       poligono
+
+polygon.html
+polygon.js             prende in input numero di vertici di un poligono
+                       e genera una figura complessa; il codice js è in polygon.js
+
+move_box_keyboard.html reagisce a tasti per muovere un rettangolo su canvas
+
+mouse_events.html      abilita gli eventi del mouse (visualizza su console)
+
+text_on_canvas.html    disegna un testo su canvas
+
+image_on_canvas1.html
+star.png               carica una immagine dal DOM e la visualizza sia sulla
+                       finestra del browser che sul canvas
+
+image_on_canvas2.html
+star.png               carica una immagine dal DOM e la visualizza sul canvas
+
+
+set_pixels.html        disegna singoli pixel su un ImageData
+set_pixels.js
+
+ball.html              disegna un ball che si muove in un canvas e rimbalza
+                       sui bordi
+
+ball2.html             come il precedente, ma ora si controlla la velocità con
+                       i tasti A, D, W ed S
+
+ball3.html             come il precedente, ma ora si controlla la velocità con
+                       il mouse (mousedown e mousemove)
+
+ball3_2.html           come il precedente, ma ora ci sono due ball e collidono.
+
+polygon_pixel.html     disegna un poligono usando algoritmo di linea di Bresenham
+polygon_pixel.js
+draw_line.js
+
+polygon_float.html     disegna un poligono in coordinate float su window
+polygon_float.js
+
+draw_param_curve.html
+draw_param_curve.js    disegna una curva definita in forma parametrica
+
+bezier.html            interazione con CP di curva di Bezier cubica
+bezier.js
+
+game.html              esempio di video game

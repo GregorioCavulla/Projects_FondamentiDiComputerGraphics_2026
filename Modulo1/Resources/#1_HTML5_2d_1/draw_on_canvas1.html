@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+<head>
+   <title>The Canvas Tag </title>
+   <body>
+    <style> #canvas_1{border-style: solid; border-width: 2px; width: 400px; height: 400px;}</style>
+   </body>
+</head>
+
+  <body>
+  <canvas width="400" height="400" id="canvas_1">
+      canvas tag not supported
+  </canvas>
+
+  <script>
+    var cg;
+    function init() {
+     var canvas = document.getElementById('canvas_1'); 
+     cg = canvas.getContext("2d");     
+    }    
+    function drawOnCanvas() {
+       console.log("Mouse Button click");
+       cg.arc(200, 200, 50, 0, 2 * Math.PI, false);
+     //cg.lineWidth=5;
+       cg.stroke();
+    }
+    init();
+   </script>
+
+    <P>
+      <input type="Button" value= " Draw " onclick="drawOnCanvas()">
+    </P>
+  </body>
+</html>  

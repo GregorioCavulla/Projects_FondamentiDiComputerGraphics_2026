@@ -1,0 +1,24 @@
+<!DOCTYPE HTML>
+<html>
+   <head>
+     <title>The Canvas Tag </title>
+     <style>
+         #mycanvas{border:1px solid red;}
+     </style>
+   </head>
+   <body>
+     <canvas id="mycanvas" width="600" height="200"></canvas> 
+     <script>
+// Create an image object. This is not attached to the DOM and is not part of the page.
+      var image = new Image();
+
+      image.onload = function() {
+         var canvas = document.getElementById("mycanvas");
+         var context = canvas.getContext("2d");
+         context.drawImage(image, 50, 50);
+     };
+// Now set the source of the image that we want to load
+      image.src = "star.png";
+     </script>
+   </body>
+</html>

@@ -1,0 +1,49 @@
+Descrizione codici HTML5+canvas+webgl+JavaScript
+
+persp_cube_wire_webgl.html  disegna un cubo wire-frame con modifica 
+                            parametri di vista tramite bottoni
+
+persp_cube_wire_2d.html     come il precedente, ma in contesto 2d
+
+persp_cube_wire_interact_webgl.html disegna un cubo wire-frame con modifica
+                                    parametri di vista sia tramite bottoni 
+                                    che mouse
+
+persp_cube_wire_interact_2d.html   come il precedente, ma in contesto 2d
+
+persp_cube_wire_interact_webglutils.html utilizza la libreria webglutils per 
+                                        la compilazione e linking degli shader program
+
+cube_wire_interact_webgl.html   disegna un cubo a camera fissa e applica delle rotazioni
+                                interattivamente con il mouse
+                        
+cube_wire_interact_2d.html  come il precedente, ma in contesto 2d
+
+persp_wire_interact_obj_webgl.html carica un file .obj
+
+persp_sphere_wire_interact_webgl.html definisce proceduralmente una geometria mesh sfera
+
+cube_color_interact_webgl.html  disegna un cubo con facce colorate e permette 
+                                di ruotarlo interattivamente
+
+cube_color_interact_webgl2.html come il precedente, ma usa cube_color_interact_webgl2
+
+cube_color_interact_webglutils0.html  utilizza la libreria webglutils
+
+cube_color_interact_webglutils1.html
+
+cube_color_interact_and_text_webgl.html  disegna insieme un testo in contesto persp_cube_wire_2d
+
+cube_color_anim_webgl.html animazione del cubo ch eruota autonomamente
+
+cube_texture_cubemap.html+js  cubo con texture disegnata in contesto 2d
+
+persp_color_interact_webgl.html  cubo a facec colorate con la possibilità di modificare i parametri
+                                 di vista sia con bottoni che con il mouse interattivamente
+
+persp_cube_color2_interact_webgl.html
+
+persp_cube_texture_interact_webgl.html
+
+persp_cube_texture2_interact_webgl.html
+                                      

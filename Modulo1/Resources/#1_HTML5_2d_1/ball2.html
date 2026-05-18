@@ -1,0 +1,80 @@
+<!doctype html>
+<html>
+	<body>
+      <head>
+          <style type="text/css">
+             canvas { border: 2px solid blue; }
+          </style>
+      </head>
+	   <canvas width="300" height="300" id="my_Canvas" tabindex="0"></canvas>
+	   <script>
+/*============= Creating a canvas =================*/ 
+    var x = 150;
+    var y = 150;
+    var dx=2;
+    var dy=4;
+    var r = 25;
+    var larghezza=300;
+    var lunghezza=300;
+    var cg;
+
+    var canvas = document.getElementById('my_Canvas'); 
+    canvas.addEventListener('keydown', doKeyDown, true);
+    cg = canvas.getContext("2d");
+
+function doKeyDown(e){
+         //====================
+         // THE W KEY
+         //====================
+         if (e.keyCode == 87) {
+            dx = 0;
+            dy = 0;
+         }
+
+         //====================
+         // THE S KEY
+         //====================
+         if (e.keyCode == 83) {
+            dx = 1;
+            dy = 1;
+         }
+
+         //====================
+         // THE A KEY
+         //====================
+         if (e.keyCode == 65) {
+            dx = dx/2 + 1;
+            dy = dy/2 + 1;
+         }
+
+         //====================
+         // THE D KEY
+         //====================
+         if (e.keyCode == 68) {
+            if(Math.abs(dx)<r-1)
+                 dx = 2*dx;
+            if(Math.abs(dy)<r-1)
+                 dy = 2*dy;
+         }
+
+      }
+/*================= Drawing ===========================*/ 
+var time_old=0;
+var animate=function(time) {
+      cg.clearRect(0,0,larghezza,lunghezza);
+      cg.beginPath();
+      cg.fillStyle = 'red';
+      cg.arc(x, y, r, 0, Math.PI*2, true); 
+      cg.closePath();
+      cg.fill();
+      if(x+r >= larghezza || x-r <= 0) dx = -dx;
+      if(y+r >= lunghezza || y-r <= 0) dy = -dy;
+      x += dx;
+      y += dy;
+      window.requestAnimationFrame(animate); 
+}
+
+      animate(0);
+      </script>
+   </body>
+</html>

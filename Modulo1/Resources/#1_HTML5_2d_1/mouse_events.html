@@ -1,0 +1,75 @@
+<!doctype html>
+<html>
+   <head>
+    <title>The Canvas Tag </title>
+    <style>
+         body {
+            background: #dddddd;
+         }
+/*         #mycanvas{
+          margin: 20px;
+            padding: 20px;
+            background: #ffffff;
+            border: thin inset #0000ff;
+            width: 360px;
+            height: 360px;
+         }
+*/
+         #mycanvas{
+            padding: 0px;
+            margin: 20px;
+            background: #ffffff;
+            border: thin inset #0000ff;
+         }
+    </style>
+
+   <script>
+    var canvas;
+    function initialise() {
+      canvas = document.getElementById("mycanvas");
+//      canvas.onmousemove = doMouseDown;
+      canvas.addEventListener('mousedown',doMouseDown,true);
+      canvas.addEventListener("mousemove",doMouseDown,true);
+      console.log(canvas.offsetLeft,canvas.offsetTop);
+      var bbox = canvas.getBoundingClientRect();
+      console.log(bbox.left,bbox.top,bbox.width,bbox.height);
+      console.log(canvas.width,canvas.height);
+//      console.log(canvas.style.width,canvas.style.height);
+    }
+
+    function doMouseDown(event){
+//      event.preventDefault();
+      canvas_x=event.pageX;
+      canvas_y=event.pageY;
+      var loc = windowToCanvas(canvas, canvas_x, canvas_y);
+      console.log('Position: ',loc.x,loc.y);
+      switch (event.button) {
+            case 0:
+                console.log('Left button clicked');
+            break;
+            case 1:
+                console.log('Middle button clicked');
+            break;
+            case 2:
+                console.log('Right button clicked');
+            break;
+            default:
+                console.log('Unexpected code');
+      }
+    }
+
+    function windowToCanvas(canvas, x, y) {
+      var bbox = canvas.getBoundingClientRect();
+
+      return { x: Math.round(x - bbox.left * (canvas.width  / bbox.width)),
+               y: Math.round(y - bbox.top  * (canvas.height / bbox.height))
+             };
+    }
+   </script>
+ </head>
+<body onLoad=initialise()>
+  <canvas width="400" height="400" id="mycanvas">
+      canvas tag not supported
+  </canvas>
+</body>
+</html>  

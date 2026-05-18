@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+<head>
+   <title>The Canvas Tag </title>
+   <body>
+<!--
+   <section style="border-style: solid; border-width: 2px; width: 400px; height: 400px">
+    <canvas width="200" height="200" id="canvas_1">
+       canvas tag not supported
+    </section>
+-->
+  <!-- <style> #canvas_1{border-style: solid; border-width: 2px; width: 400px; height: 400px;}</style> -->
+  <style> #canvas_1{border-style: solid; border-width: 2px;}</style>
+  </body>
+  </head>
+
+  <body>
+    <canvas width="400" height="400" id="canvas_1">
+      canvas tag not supported
+    </canvas>
+
+    <script>
+     var cg;
+     function init() {
+       var canvas = document.getElementById('canvas_1'); 
+       cg = canvas.getContext("2d");
+
+       cg.arc(200, 200, 50, 0, 2 * Math.PI, false);
+    //cg.strokeStyle = "#0000FF";
+    //cg.strokeStyle = "rgb(0,0,255)";
+    //cg.lineWidth=5;
+       cg.stroke();
+     }
+     init();
+    </script>
+  </body>
+</html>  

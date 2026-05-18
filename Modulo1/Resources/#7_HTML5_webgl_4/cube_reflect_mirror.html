@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebGL Mirror</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; }
+        canvas { width: 100vw; height: 100vh; display: block; }
+        #info { position: absolute; top: 10px; left: 10px; color: white; background: rgba(0,0,0,0.5); padding: 10px; pointer-events: none; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div id="info"><br>Trascina per orbitare | Rotella per Zoom</div>
+    <canvas id="glCanvas"></canvas>
+
+    <script id="vs" type="x-shader/x-vertex">
+          attribute vec4 a_pos; 
+          attribute vec4 a_col; 
+          uniform mat4 u_m; 
+          varying vec4 v_c; 
+          void main(){
+            gl_Position=u_m*a_pos; 
+            v_c=a_col;
+          }
+    </script>
+    <script id="fs" type="x-shader/x-fragment">
+          precision mediump float; 
+          varying vec4 v_c; 
+          void main(){
+            gl_FragColor=v_c;
+          }
+    </script>
+    <script id="vsM" type="x-shader/x-vertex">
+          attribute vec4 a_pos; 
+          uniform mat4 u_m; 
+          varying vec4 v_clip; 
+          void main(){
+            gl_Position=u_m*a_pos; 
+            v_clip=gl_Position;
+          }
+    </script>
+    <script id="fsM" type="x-shader/x-fragment">
+          precision mediump float; 
+          uniform sampler2D u_t; 
+          uniform bool u_front; 
+          varying vec4 v_clip; 
+          void main(){
+            if(!u_front){ 
+                gl_FragColor=vec4(0.05,0.05,0.05,1); 
+            }else{ 
+                vec2 uv=(v_clip.xy/v_clip.w)*0.5+0.5; 
+                gl_FragColor=texture2D(u_t, uv); 
+            }
+          }
+    </script>
+    <script type="text/javascript" src="resources/lib/m4.js"></script>
+    <script>
+        const canvas = document.getElementById("glCanvas");
+        const gl = canvas.getContext("webgl");
+
+        // --- SETUP SHADERS ---
+        function createProg(vsId, fsId) {
+            const vs = gl.createShader(gl.VERTEX_SHADER);
+            gl.shaderSource(vs, document.getElementById(vsId).text);
+            gl.compileShader(vs);
+            const fs = gl.createShader(gl.FRAGMENT_SHADER);
+            gl.shaderSource(fs, document.getElementById(fsId).text);
+            gl.compileShader(fs);
+            const p = gl.createProgram();
+            gl.attachShader(p, vs); 
+            gl.attachShader(p, fs);
+            gl.linkProgram(p);
+            return p;
+        }
+        const prog = createProg("vs", "fs");
+        const mProg = createProg("vsM", "fsM");
+
+        // Geometria Cubo (6 facce distinte per evitare errori di strip)
+        const pos = new Float32Array([
+            -0.5,-0.5,0.5, 0.5,-0.5,0.5, -0.5,0.5,0.5, -0.5,0.5,0.5, 0.5,-0.5,0.5, 0.5,0.5,0.5,
+            -0.5,-0.5,-0.5, -0.5,0.5,-0.5, 0.5,-0.5,-0.5, 0.5,-0.5,-0.5, -0.5,0.5,-0.5, 0.5,0.5,-0.5,
+            -0.5,0.5,-0.5, -0.5,0.5,0.5, 0.5,0.5,-0.5, 0.5,0.5,-0.5, -0.5,0.5,0.5, 0.5,0.5,0.5,
+            -0.5,-0.5,-0.5, 0.5,-0.5,-0.5, -0.5,-0.5,0.5, -0.5,-0.5,0.5, 0.5,-0.5,-0.5, 0.5,-0.5,0.5,
+            0.5,-0.5,-0.5, 0.5,0.5,-0.5, 0.5,-0.5,0.5, 0.5,-0.5,0.5, 0.5,0.5,-0.5, 0.5,0.5,0.5,
+            -0.5,-0.5,-0.5, -0.5,-0.5,0.5, -0.5,0.5,-0.5, -0.5,0.5,-0.5, -0.5,-0.5,0.5, -0.5,0.5,0.5
+        ]);
+        const cols = new Float32Array([
+            1,0,0,1, 1,0,0,1, 1,0,0,1, 1,0,0,1, 1,0,0,1, 1,0,0,1,
+            0,1,0,1, 0,1,0,1, 0,1,0,1, 0,1,0,1, 0,1,0,1, 0,1,0,1,
+            0,0,1,1, 0,0,1,1, 0,0,1,1, 0,0,1,1, 0,0,1,1, 0,0,1,1,
+            1,1,0,1, 1,1,0,1, 1,1,0,1, 1,1,0,1, 1,1,0,1, 1,1,0,1,
+            1,0,1,1, 1,0,1,1, 1,0,1,1, 1,0,1,1, 1,0,1,1, 1,0,1,1,
+            0,1,1,1, 0,1,1,1, 0,1,1,1, 0,1,1,1, 0,1,1,1, 0,1,1,1
+        ]);
+        const planeM = new Float32Array([-1.5,-1,0, 1.5,-1,0, -1.5,1,0, -1.5,1,0, 1.5,-1,0, 1.5,1,0]);
+        const planeBorder = new Float32Array([-1.5,-1,0, 1.5,-1,0, 1.5,1,0, -1.5,1,0, -1.5,-1,0]);
+        const planeBCols = new Float32Array([1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1]);
+        const bP = gl.createBuffer(); 
+        gl.bindBuffer(gl.ARRAY_BUFFER, bP); 
+        gl.bufferData(gl.ARRAY_BUFFER, pos, gl.STATIC_DRAW);
+        const bC = gl.createBuffer(); 
+        gl.bindBuffer(gl.ARRAY_BUFFER, bC); 
+        gl.bufferData(gl.ARRAY_BUFFER, cols, gl.STATIC_DRAW);
+        const bM = gl.createBuffer(); 
+        gl.bindBuffer(gl.ARRAY_BUFFER, bM); 
+        gl.bufferData(gl.ARRAY_BUFFER, planeM, gl.STATIC_DRAW);
+        const pP = gl.createBuffer(); 
+        gl.bindBuffer(gl.ARRAY_BUFFER, pP); 
+        gl.bufferData(gl.ARRAY_BUFFER, planeBorder, gl.STATIC_DRAW);
+        const pC = gl.createBuffer(); 
+        gl.bindBuffer(gl.ARRAY_BUFFER, pC); 
+        gl.bufferData(gl.ARRAY_BUFFER, planeBCols, gl.STATIC_DRAW);
+
+        //crea una texture dove disegnare
+        const fS = 1024, tex = gl.createTexture(); 
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,fS,fS,0,gl.RGBA,gl.UNSIGNED_BYTE,null);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        //crea un Framebuffer virtuale scollegato dal canvas
+        const fb = gl.createFramebuffer(); 
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+        //collega la texture al framebuffer virtuale
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+        //crea un buffer per le profondità
+        const rb = gl.createRenderbuffer(); 
+        gl.bindRenderbuffer(gl.RENDERBUFFER, rb);        
+        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, fS, fS);
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, rb);
+
+        let th = 0.5, ph = 0.2, dist = 6;
+        canvas.onmousemove = (e) => { 
+            if(e.buttons==1){ 
+                th -= e.movementX*0.01; 
+                ph = Math.max(-1.5, Math.min(1.5, ph + e.movementY*0.01)); 
+            } 
+        };
+        canvas.onwheel = (e) => { 
+            dist = Math.max(2, dist + e.deltaY*0.005); 
+            e.preventDefault(); 
+        };
+
+        function draw() {
+            canvas.width = window.innerWidth; 
+            canvas.height = window.innerHeight;
+            const camPos = [dist*Math.sin(th)*Math.cos(ph), dist*Math.sin(ph), dist*Math.cos(th)*Math.cos(ph)];
+            const view = m4.inverse(m4.lookAt(camPos, [0,0,0], [0,1,0]));
+            const proj = m4.perspective(45*Math.PI/180, canvas.width/canvas.height, 0.1, 100);
+            const isFront = camPos[2] > 0;
+
+            // 1. RIFLESSIONE (Matrice di riflessione pura per piano Z=0)
+            const reflectZ = [1,0,0,0, 0,1,0,0, 0,0,-1,0, 0,0,0,1];
+            gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+            gl.viewport(0,0,fS,fS);
+            gl.clearColor(0,0,0,1); 
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+            gl.enable(gl.DEPTH_TEST);
+            gl.disable(gl.CULL_FACE); // Cubo "aperto" visibile da entrambi i lati
+            
+            if(isFront) {
+                // Moltiplichiamo la vista per la riflessione
+                const reflView = m4.multiply(view, reflectZ);
+                drawScene(reflView, proj);
+            }
+
+            // 2. SCENA REALE
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            gl.viewport(0,0,canvas.width,canvas.height);
+            gl.clearColor(0.05,0.05,0.05,1); 
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+            drawScene(view, proj);
+            
+            // SPECCHIO
+            gl.useProgram(mProg);
+            gl.uniformMatrix4fv(gl.getUniformLocation(mProg, "u_m"), false, m4.multiply(proj, view));
+            gl.uniform1i(gl.getUniformLocation(mProg, "u_front"), isFront);
+            gl.bindTexture(gl.TEXTURE_2D, tex);
+            gl.bindBuffer(gl.ARRAY_BUFFER, bM);
+            const pL = gl.getAttribLocation(mProg, "a_pos");
+            gl.enableVertexAttribArray(pL); 
+            gl.vertexAttribPointer(pL, 3, gl.FLOAT, false, 0, 0);
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+            requestAnimationFrame(draw);
+        }
+
+        function drawScene(v, p) {
+            gl.useProgram(prog);
+            let m = m4.translate(m4.multiply(p, v), 0, 0, 1.5);
+            gl.uniformMatrix4fv(gl.getUniformLocation(prog, "u_m"), false, m);
+            gl.bindBuffer(gl.ARRAY_BUFFER, bP);
+            let pL = gl.getAttribLocation(prog, "a_pos");
+            gl.enableVertexAttribArray(pL); 
+            gl.vertexAttribPointer(pL, 3, gl.FLOAT, false, 0, 0);
+            gl.bindBuffer(gl.ARRAY_BUFFER, bC);
+            let cL = gl.getAttribLocation(prog, "a_col");
+            gl.enableVertexAttribArray(cL); 
+            gl.vertexAttribPointer(cL, 4, gl.FLOAT, false, 0, 0);
+            //disegna 6 facce
+            //gl.drawArrays(gl.TRIANGLES, 0, 36);
+            //disegna 4 facce
+            gl.drawArrays(gl.TRIANGLES, 0, 24);
+
+            m = m4.multiply(p, v);
+            gl.uniformMatrix4fv(gl.getUniformLocation(prog, "u_m"), false, m);
+            gl.bindBuffer(gl.ARRAY_BUFFER, pP);
+            pL = gl.getAttribLocation(prog, "a_pos");
+            gl.enableVertexAttribArray(pL); 
+            gl.vertexAttribPointer(pL, 3, gl.FLOAT, false, 0, 0);
+            gl.bindBuffer(gl.ARRAY_BUFFER, pC);
+            cL = gl.getAttribLocation(prog, "a_col");
+            gl.enableVertexAttribArray(cL); 
+            gl.vertexAttribPointer(cL, 4, gl.FLOAT, false, 0, 0);
+
+            gl.drawArrays(gl.LINE_STRIP, 0, 5);
+        }
+        draw();
+    </script>
+</body>
+</html>

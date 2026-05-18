@@ -1,0 +1,174 @@
+<!doctype html>
+<html>
+   <head>
+    <title>The Canvas Tag </title>
+    <style>
+         #my_Canvas{border:1px solid blue;}
+    </style>
+</head>
+<body>
+<canvas width="400" height="400" id="my_Canvas"></canvas>
+<script>
+
+/*============= Creating a canvas ==================*/ var canvas = document.getElementById('my_Canvas');
+gl = canvas.getContext('experimental-webgl');
+/*========== Defining and storing the geometry ==========*/
+// var vertices =  [-0.5,0.5,0.0, -0.5,-0.5,0.0, 0.5,-0.5,0.0, 0.5,0.5,0.0];
+// //var colors=[0,0,1, 1,0,0, 0,1,0, 1,1,1];
+// var colors=[1,1,0, 1,1,0, 1,1,0, 1,1,0];
+// var indices = [0,1,2, 0,2,3];
+// var texcoords = [0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0];
+
+var vertices =  [0.0,0.5,0.0, -0.6,-0.6,0.0, 0.6,-0.6,0.0];
+var colors=[1,1,0, 1,1,0, 1,1,0];
+var indices = [0,1,2];
+var texcoords = [0.5, 0.0, 0.0, 0.55, 1.0, 0.55];
+
+// Create an empty buffer object and store vertex data 
+var vertex_buffer = gl.createBuffer(); 
+gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer); 
+gl.bufferData(gl.ARRAY_BUFFER,
+  new Float32Array(vertices), gl.STATIC_DRAW); 
+gl.bindBuffer(gl.ARRAY_BUFFER, null);
+// Create an empty buffer object and store Index data 
+var index_buffer = gl.createBuffer(); 
+gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer); 
+gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,
+   new Uint16Array(indices), gl.STATIC_DRAW); 
+gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+// Create an empty buffer object and store color data 
+var color_buffer = gl.createBuffer (); 
+gl.bindBuffer(gl.ARRAY_BUFFER, color_buffer); 
+gl.bufferData(gl.ARRAY_BUFFER,
+   new Float32Array(colors), gl.STATIC_DRAW);
+var texcoordBuffer = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
+gl.bufferData(gl.ARRAY_BUFFER, 
+   new Float32Array(texcoords),gl.STATIC_DRAW);
+
+// Create a texture.
+var texture = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, texture);
+// Fill the texture with a 1x1 blue pixel.
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
+                new Uint8Array([0, 0, 255, 255]));
+
+// load an image
+var image = new Image();
+//image.src = "resources/images/webgl-marble.png";
+image.src = "resources/images/ganesha.png";
+
+image.addEventListener('load', function () {
+    // Now that the image has loaded make copy it to the texture.
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,gl.UNSIGNED_BYTE, image);
+   // image size must be a power of 2.
+   //  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+   //  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+});
+
+
+/*======================= Shaders =======================*/
+// vertex shader source code
+var vertCode = 'attribute vec3 coordinates;'+
+'attribute vec3 color;'+
+'attribute vec2 a_texcoord;'+
+'varying vec3 vColor;'+
+'varying vec2 v_texcoord;'+
+'void main(void) {' +
+'gl_Position = vec4(coordinates, 1.0);' +
+'v_texcoord = a_texcoord;'+
+'vColor=color;'+
+'}';
+
+// Create a vertex shader object
+var vertShader = gl.createShader(gl.VERTEX_SHADER);
+// Attach vertex shader source code 
+gl.shaderSource(vertShader, vertCode);
+// Compile the vertex shader 
+gl.compileShader(vertShader);
+
+// fragment shader source code
+var fragCode='precision mediump float;'+
+'varying vec3 vColor;'+
+'varying vec2 v_texcoord;'+
+'uniform sampler2D texloc;'+
+'void main(void) {'+
+//'gl_FragColor = vec4(vColor, 1.0);'+
+'gl_FragColor = vec4(texture2D(texloc, v_texcoord));'+ 
+//'gl_FragColor = vec4(texture2D(texloc, v_texcoord))*vec4(vColor, 1.0);'+ 
+'}';
+
+// Create fragment shader object
+var fragShader = gl.createShader(gl.FRAGMENT_SHADER);
+// Attach fragment shader source code 
+gl.shaderSource(fragShader, fragCode);
+// Compile the fragmentt shader 
+gl.compileShader(fragShader);
+
+// Create a shader program object to 
+// store the combined shader program
+var shaderProgram = gl.createProgram(); 
+// Attach a vertex shader
+gl.attachShader(shaderProgram, vertShader);
+// Attach a fragment shader 
+gl.attachShader(shaderProgram, fragShader);
+// Link both the programs 
+gl.linkProgram(shaderProgram);
+// Use the combined shader program object 
+gl.useProgram(shaderProgram);
+
+var textureLocation = gl.getUniformLocation(shaderProgram, "texloc");
+
+/* ======== Associating shaders to buffer objects =======*/
+// Bind vertex buffer object 
+gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+// Bind index buffer object 
+gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
+// Get the attribute location
+var coord = gl.getAttribLocation(shaderProgram, "coordinates");
+// point an attribute to the currently bound VBO 
+gl.vertexAttribPointer(coord, 3, gl.FLOAT, false, 0, 0);
+// Enable the attribute 
+gl.enableVertexAttribArray(coord);
+// bind the color buffer 
+gl.bindBuffer(gl.ARRAY_BUFFER, color_buffer);
+// get the attribute location
+var color = gl.getAttribLocation(shaderProgram, "color");
+// point attribute to the volor buffer object 
+gl.vertexAttribPointer(color, 3, gl.FLOAT, false,0,0) ;
+// enable the color attribute 
+gl.enableVertexAttribArray(color);
+gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
+var texcoordLocation = gl.getAttribLocation(shaderProgram, "a_texcoord");
+gl.vertexAttribPointer(texcoordLocation, 2, gl.FLOAT, false, 0, 0);
+gl.enableVertexAttribArray(texcoordLocation);
+
+/*============Drawing the Quad====================*/
+// Tell the shader to use texture unit 0 for texcoord
+gl.uniform1i(textureLocation, 0);
+// Clear the canvas
+gl.clearColor(0.5, 0.5, .5, 1);
+// Enable the depth test
+// gl.enable(gl.DEPTH_TEST);
+// Clear the color buffer bit 
+gl.clear(gl.COLOR_BUFFER_BIT);
+// Set the view port 
+// gl.viewport(0,0,canvas.width,canvas.height);
+ //Draw the triangle
+gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
+
+// function render(){
+//    gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT,0);
+//    window.requestAnimationFrame(render);
+// }
+// render(0);
+
+image.onload = function(){
+gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT,0);
+}
+
+</script>
+   </body>
+</html>

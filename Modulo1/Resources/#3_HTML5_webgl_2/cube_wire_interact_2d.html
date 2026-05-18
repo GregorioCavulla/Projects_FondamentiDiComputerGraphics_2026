@@ -1,0 +1,213 @@
+<!doctype html>
+<html>
+  <head>
+      <!--per ricaricare sempre la pagina da zero e non usare la cache-->
+      <META HTTP-EQUIV=”Pragma” CONTENT=”no-cache”>
+      <META HTTP-EQUIV=”Cache-Control” CONTENT=”no-cache”>
+      <!--per definire la dimensione e posizione dell'elemento canvas;
+        se i valori di width ed height impostati qui sono superiori a
+        corrispondenti settati in <canvas width= .. height=.. l'immagine
+        verra' adattata ingrandendola, mentre se i valori sono inferiori,
+        l'iimagine verra' adattata rimpicciolendola-->
+      <style>
+        body {
+            background: #dddddd;
+        }
+        #my_Canvas {
+            margin: 10px;
+            padding: 5px;
+            background: #ffffff;
+            border: thin inset #aaaaaa;
+        }
+    </style>
+   </head>
+
+<body>
+
+<script src="resources/m4.js"></script>
+
+<canvas width="500" height="500" id="my_Canvas"></canvas>
+<!-- <canvas id="my_Canvas" width="500" height="500" style="border:1px solid #d3d3d3;top: 80px; left: 80px; position: absolute;"></canvas>-->
+
+<script>
+/*============= Creating a canvas ======================*/ 
+var canvas = document.getElementById('my_Canvas');
+ctx = canvas.getContext('2d');
+//struttura viewport
+var view = {
+    vxmin: 0,
+    vxmax: canvas.width,
+    vymin: 0,
+    vymax: canvas.height }
+//struttura window
+var win = {
+    wxmin: -1.0,
+    wxmax: 1.0,
+    wymin: -1.0,
+    wymax: 1.0 }
+
+//fattori di scala
+var scx, scy;
+var vs=[];
+
+/*========== Defining and storing the geometry ==========*/
+var vertices=[
+-1,-1,-1,1, 1,-1,-1,1, 1,1,-1,1, -1,1,-1,1, -1,-1,1,1, 1,-1,1,1, 1,1,1,1, -1,1,1,1];
+var indices = [
+0,1, 1,2, 2,3, 3,0, 4,5, 5,6, 6,7, 7,4, 0,4, 1,5, 2,6, 3,7]; 
+
+/*==================== MATRIX ====================== */
+// function get_projection(angle, ar, zMin, zMax) {
+// var ang=Math.tan(0.5*angle*Math.PI/180);//angle*.5 
+// return [
+//    1/(ar*ang), 0 ,   0, 0,
+//    0, 1/ang,  0, 0,
+//    0, 0, 0, -1,
+//    0, 0, 0, 0 ];
+// } 
+
+function degToRad(d) {
+    return d * Math.PI / 180;
+}
+
+var mouseDown=function(e) {
+    drag=true;
+    old_x=e.pageX, old_y=e.pageY;
+    e.preventDefault();
+    return false;
+};
+
+var mouseUp=function(e){
+    drag=false;
+};
+
+var mouseMove=function(e) {
+   if (!drag) return false; 
+   dX=(e.pageX-old_x)*2*Math.PI/canvas.width, 
+   dY=(e.pageY-old_y)*2*Math.PI/canvas.height; 
+   THETA+=dX;
+   PHI+=dY;
+   old_x=e.pageX, old_y=e.pageY; 
+   e.preventDefault();
+};
+
+/* trasformazione window-viewport */
+function win_view(px,py,scx,scy,view,win) {
+  ixp = Math.round(scx * (px - win.wxmin) + view.vxmin);
+  iyp = Math.round(scy * (win.wymin - py) + view.vymax);
+  return {ixp: ixp,iyp: iyp};
+}
+
+/*=================== Drawing =================== */
+var animate=function(time) {
+      if (!drag) {
+         dX*=AMORTIZATION, dY*=AMORTIZATION;
+         THETA+=dX, PHI+=dY;
+      }
+
+//set model matrix to I4
+//  var mo_matrix=[
+//    1,0,0,0,
+//    0,1,0,0,
+//    0,0,1,0,
+//    0,0,0,1];
+//  mo_matrix = m4.xRotate(mo_matrix,THETA);
+//  mo_matrix = m4.yRotate(mo_matrix, PHI);
+
+//alternativa senza bisogno to set I4
+ mo_matrix = m4.xRotation(THETA);
+ mo_matrix = m4.yRotate(mo_matrix, PHI);
+
+var PVM_matrix=[];
+// //proj_matrix*view_matrix*mo_matrix
+//  PVM_matrix=m4.multiply(proj_matrix,view_matrix);
+ PVM_matrix=m4.multiply(PV_matrix,mo_matrix);
+
+ var vv=[];
+ var vert=[];
+ for (let i=0; i<vertices.length/4; ++i) {
+   for (let j=0; j<4; ++j)
+     vv[j]=vertices[i*4+j];
+   //applica matrice PVM al vettore vv
+   vv=m4.transformVector(PVM_matrix,vv);
+   //divisione prospettica
+   for (let j=0; j<4; ++j)
+     vert[i*4+j]=vv[j]/vv[3];
+ }
+//per come abbiamo definito la matrice di proiezione
+//le coordinate z proiettate saranno tutte 0, infatti
+//in questo codice non applichiamo clipping, né depth-buffer,
+//ma solo disegno wire-frame in coordinate window-viewport
+//console.log(vert);
+
+//al momento non consideriamo la z trasformata e
+//procediamo con la trasformazione window-viwport
+ for (var i=0;i<vert.length/4;i++) {
+    vv=win_view(vert[i*4],vert[i*4+1],scx,scy,view,win)
+    vs[i*2]=vv.ixp;
+    vs[i*2+1]=vv.iyp;
+ }
+
+ ctx.clearRect(0,0,canvas.width,canvas.height);         
+
+ /* disegno wire-frame dei lati della mesh 3D proiettata in 2D*/
+ ctx.strokeStyle = 'rgb(255,0,0)';
+ ctx.beginPath();
+ var i1,i2;
+ for (var i=0;i<indices.length/2;++i) {
+     i1=indices[2*i];
+     i2=indices[2*i+1];
+     ctx.moveTo(vs[2*i1],vs[2*i1+1]);
+     ctx.lineTo(vs[2*i2],vs[2*i2+1]);
+ }
+ ctx.stroke();
+
+// per vedere eventuali stampe, commentare la linea seguente
+window.requestAnimationFrame(animate); 
+}
+
+// Compute the projection matrix
+var angle=degToRad(40);
+var proj_matrix = m4.perspective(angle, canvas.width/canvas.height, 1, 100);
+//console.log(proj_matrix);
+
+//per confronto matrice di proiezione
+// var projMatrix=get_projection(40, canvas.width/canvas.height, 1, 100);
+// console.log(projMatrix);
+
+var cameraPosition = [0, 0, 5];
+var up = [0, 1, 0];
+var target = [0, 0, 0];
+// Compute the camera's matrix using look at.
+var view_matrix = m4.lookAt(cameraPosition, target, up);
+//console.log(view_matrix);
+// Make a view matrix from the camera matrix.
+var view_matrix = m4.inverse(view_matrix);
+//console.log(view_matrix);
+
+var PV_matrix=[];
+//proj_matrix*view_matrix*mo_matrix
+PV_matrix=m4.multiply(proj_matrix,view_matrix);
+
+/*================= Mouse events ======================*/
+var AMORTIZATION=0.95;
+var drag=false;
+var old_x, old_y;
+var dX=0, dY=0;
+
+canvas.addEventListener("mousedown", mouseDown, false); 
+canvas.addEventListener("mouseup", mouseUp, false); 
+canvas.addEventListener("mouseout", mouseUp, false); 
+canvas.addEventListener("mousemove", mouseMove, false);
+
+var THETA=0, PHI=0;
+
+/* fattori di scala per trasformazione Window-Viewport */
+scx = (view.vxmax - view.vxmin)/(win.wxmax - win.wxmin);
+scy = (view.vymax - view.vymin)/(win.wymax - win.wymin);
+
+animate(0);
+
+</script>
+</body>
+</html>  

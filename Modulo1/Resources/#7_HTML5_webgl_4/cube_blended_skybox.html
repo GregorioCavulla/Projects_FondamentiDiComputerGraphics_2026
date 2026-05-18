@@ -1,0 +1,391 @@
+<!-- Licensed under a BSD license. See license.html for license -->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>WebGL - Blended Cube and Skybox</title>
+<!--<link type="text/css" href="resources/webgl-tutorials.css" rel="stylesheet" />-->
+</head>
+<body>
+<div class="description">
+Blended cube and skybox<br/>
+</div>
+<canvas id="canvas" width="600" height="600"></canvas>
+</body>
+<script id="vertex-shader" type="x-shader/x-vertex">
+attribute vec4 a_position;
+
+uniform mat4 u_projection;
+uniform mat4 u_view;
+uniform mat4 u_world;
+
+void main() {
+  // Multiply the position by the matrix.
+  gl_Position = u_projection * u_view * u_world * a_position;
+}
+</script>
+<!-- fragment shader -->
+<script id="fragment-shader" type="x-shader/x-fragment">
+precision highp float;
+
+void main() {
+    float trasparenza = 0.125;
+    gl_FragColor = vec4(1.0, 1.0, 1.0, trasparenza);
+}
+</script>
+<script id="skybox-vertex-shader" type="x-shader/x-vertex">
+attribute vec4 a_position;
+varying vec4 v_position;
+void main() {
+  v_position = a_position;
+  gl_Position = vec4(a_position.xy, 1, 1);
+}
+</script>
+<script id="skybox-fragment-shader" type="x-shader/x-fragment">
+precision mediump float;
+
+uniform samplerCube u_skybox;
+uniform mat4 u_viewDirectionProjectionInverse;
+
+varying vec4 v_position;
+void main() {
+  vec4 t = u_viewDirectionProjectionInverse * v_position;
+  gl_FragColor = textureCube(u_skybox, normalize(t.xyz / t.w));
+}
+</script>
+<script src="resources/lib/webgl-utils.js"></script>
+<script src="resources/lib/m4.js"></script>
+
+<script>
+"use strict";
+
+function createBufferInfoFunc(fn) {
+    return function(gl) {
+      const arrays = fn.apply(null,  Array.prototype.slice.call(arguments, 1));
+      return webglUtils.createBufferInfoFromArrays(gl, arrays);
+    };
+  }
+
+function createCubeVertices() {
+    const k = 1/2;
+
+    const cornerVertices = [
+      [-k, -k, -k],
+      [+k, -k, -k],
+      [-k, +k, -k],
+      [+k, +k, -k],
+      [-k, -k, +k],
+      [+k, -k, +k],
+      [-k, +k, +k],
+      [+k, +k, +k],
+    ];
+
+    const numVertices = 6 * 4;
+    const positions = webglUtils.createAugmentedTypedArray(3, numVertices);
+    const indices   = webglUtils.createAugmentedTypedArray(3, 6 * 2, Uint16Array);
+
+    for (let f = 0; f < 6; ++f) {
+      const faceIndices = CUBE_FACE_INDICES[f];
+      for (let v = 0; v < 4; ++v) {
+        const position = cornerVertices[faceIndices[v]];
+
+        // Each face needs all four vertices because the normals and texture
+        // coordinates are not all the same.
+        positions.push(position);
+      }
+      // Two triangles make a square face.
+      const offset = 4 * f;
+      indices.push(offset + 0, offset + 1, offset + 2);
+      indices.push(offset + 0, offset + 2, offset + 3);
+    }
+
+    return {
+      position: positions,
+      indices: indices,
+    };
+  }
+
+  const CUBE_FACE_INDICES = [
+    [3, 7, 5, 1], // right
+    [6, 2, 0, 4], // left
+    [6, 7, 3, 2], // ??
+    [0, 1, 5, 4], // ??
+    [7, 6, 4, 5], // front
+    [2, 3, 1, 0], // back
+  ];
+
+  // function createXYQuadVertices(size, xOffset, yOffset) {
+  //   size = size || 2;
+  //   xOffset = xOffset || 0;
+  //   yOffset = yOffset || 0;
+  //   size *= 0.5;
+  function createXYQuadVertices() {
+  var xOffset = 0;
+  var yOffset = 0;
+  var size = 1;
+    return {
+      position: {
+        numComponents: 2,
+        data: [
+          xOffset + -1 * size, yOffset + -1 * size,
+          xOffset +  1 * size, yOffset + -1 * size,
+          xOffset + -1 * size, yOffset +  1 * size,
+          xOffset +  1 * size, yOffset +  1 * size,
+        ],
+      },
+      normal: [
+        0, 0, 1,
+        0, 0, 1,
+        0, 0, 1,
+        0, 0, 1,
+      ],
+      texcoord: [
+        0, 0,
+        1, 0,
+        0, 1,
+        1, 1,
+      ],
+      indices: [ 0, 1, 2, 2, 1, 3 ],
+    };
+  }
+
+let mouseDown = false;
+let lastMouseX = 0;
+let lastMouseY = 0;
+let yaw = 0;
+let pitch = 0;
+
+let near = 1;
+let far = 2000;
+let fovy = 60;
+let cameraRadius = 2;
+
+function main() {
+  // Get A WebGL context
+  var canvas = document.getElementById("canvas");
+  var gl = canvas.getContext("webgl");
+  if (!gl) {
+    return;
+  }
+
+  // setup GLSL programs and lookup locations
+  const envmapProgramInfo = webglUtils.createProgramInfo( gl, ["vertex-shader", "fragment-shader"]);
+  
+  const skyboxProgramInfo = webglUtils.createProgramInfo( gl, ["skybox-vertex-shader", "skybox-fragment-shader"]);
+
+// create buffers and fill with vertex data
+  const arrays1 = createCubeVertices.apply(null,  Array.prototype.slice.call(arguments, 1));
+  const cubeBufferInfo=webglUtils.createBufferInfoFromArrays(gl, arrays1);
+
+  const arrays2 = createXYQuadVertices.apply(null,  Array.prototype.slice.call(arguments, 1));
+  const quadBufferInfo = webglUtils.createBufferInfoFromArrays(gl, arrays2);
+  
+  // Create a texture.
+  const texture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture);
+
+  const faceInfos = [
+    {
+      target: gl.TEXTURE_CUBE_MAP_POSITIVE_X,
+      url: 'resources/images/computer-history-museum/pos-x.jpg',
+    },
+    {
+      target: gl.TEXTURE_CUBE_MAP_NEGATIVE_X,
+      url: 'resources/images/computer-history-museum/neg-x.jpg',
+    },
+    {
+      target: gl.TEXTURE_CUBE_MAP_POSITIVE_Y,
+      url: 'resources/images/computer-history-museum/pos-y.jpg',
+    },
+    {
+      target: gl.TEXTURE_CUBE_MAP_NEGATIVE_Y,
+      url: 'resources/images/computer-history-museum/neg-y.jpg',
+    },
+    {
+      target: gl.TEXTURE_CUBE_MAP_POSITIVE_Z,
+      url: 'resources/images/computer-history-museum/pos-z.jpg',
+    },
+    {
+      target: gl.TEXTURE_CUBE_MAP_NEGATIVE_Z,
+      url: 'resources/images/computer-history-museum/neg-z.jpg',
+    },
+  ];
+
+  faceInfos.forEach((faceInfo) => {
+    const {target, url} = faceInfo;
+
+    // Upload the canvas to the cubemap face.
+    const level = 0;
+    const internalFormat = gl.RGBA;
+    const width = 512;
+    const height = 512;
+    const format = gl.RGBA;
+    const type = gl.UNSIGNED_BYTE;
+
+    // setup each face so it's immediately renderable
+    gl.texImage2D(target, level, internalFormat, width, height, 0, format, type, null);
+
+    // Asynchronously load an image
+    const image = new Image();
+    image.src = url;
+    image.addEventListener('load', function() {
+      // Now that the image has loaded make copy it to the texture.
+      gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture);
+      gl.texImage2D(target, level, internalFormat, format, type, image);
+      gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
+    });
+  });
+  gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
+  gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+
+  function radToDeg(r) {
+    return r * 180 / Math.PI;
+  }
+
+  function degToRad(d) {
+    return d * Math.PI / 180;
+  }
+
+  var fieldOfViewRadians = degToRad(60);
+  var cameraYRotationRadians = degToRad(0);
+
+  var spinCamera = true;
+  // Get the starting time.
+  var then = 0;
+
+  drawScene(0);
+
+  // Draw the scene.
+  function drawScene(time) {
+    // convert to seconds
+    time *= 0.001;
+    // Subtract the previous time from the current time
+    var deltaTime = time - then;
+    // Remember the current time for the next frame.
+    then = time;
+
+//    webglUtils.resizeCanvasToDisplaySize(gl.canvas);
+
+    // Tell WebGL how to convert from clip space to pixels
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+    gl.enable(gl.CULL_FACE);
+    gl.enable(gl.DEPTH_TEST);
+
+    // Clear the canvas AND the depth buffer.
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    // Compute the projection matrix
+    var aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
+    var projectionMatrix = m4.perspective(fieldOfViewRadians, aspect, 1, 2000);
+
+    //camera going in circle 2 units from origin looking at origin
+    //var cameraPosition = [Math.cos(time * .1) * 2, 0, Math.sin(time * .1) * 2];
+    var x = Math.sin(yaw) * Math.cos(pitch) * cameraRadius;
+    var y = Math.sin(pitch) * cameraRadius;
+    var z = Math.cos(yaw) * Math.cos(pitch) * cameraRadius;
+
+    var cameraPosition = [x, y, z];
+
+    var target = [0, 0, 0];
+    var up = [0, 1, 0];
+
+    // Compute the camera's matrix using look at.
+    var cameraMatrix = m4.lookAt(cameraPosition, target, up);
+
+    // Make a view matrix from the camera matrix.
+    var viewMatrix = m4.inverse(cameraMatrix);
+
+    // Rotate the cube around the x axis
+    var worldMatrix = m4.xRotation(time * 0.11);
+
+    // We only care about direction so remove the translation
+    var viewDirectionMatrix = m4.copy(viewMatrix);
+    viewDirectionMatrix[12] = 0;
+    viewDirectionMatrix[13] = 0;
+    viewDirectionMatrix[14] = 0;
+
+    var viewDirectionProjectionMatrix = m4.multiply(projectionMatrix, viewDirectionMatrix);
+    var viewDirectionProjectionInverseMatrix = m4.inverse(viewDirectionProjectionMatrix);
+
+    // draw the skybox
+    // let our quad pass the depth test at 1.0
+    gl.depthFunc(gl.LEQUAL);
+
+    gl.useProgram(skyboxProgramInfo.program);
+    webglUtils.setBuffersAndAttributes(gl, skyboxProgramInfo, quadBufferInfo);
+    webglUtils.setUniforms(skyboxProgramInfo, {
+      u_viewDirectionProjectionInverse: viewDirectionProjectionInverseMatrix,
+      u_skybox: texture,
+    });
+    webglUtils.drawBufferInfo(gl, quadBufferInfo);
+
+    // draw the cube
+    // use the default depth test
+    gl.depthFunc(gl.LESS);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+    gl.useProgram(envmapProgramInfo.program);
+    webglUtils.setBuffersAndAttributes(gl, envmapProgramInfo, cubeBufferInfo);
+    webglUtils.setUniforms(envmapProgramInfo, {
+      u_world: worldMatrix,
+      u_view: viewMatrix,
+      u_projection: projectionMatrix,
+      u_texture: texture,
+      u_worldCameraPosition: cameraPosition,
+    });
+    
+  //soluzione rapida, ma non corretta
+  //  gl.depthMask(false);
+  //  webglUtils.drawBufferInfo(gl, cubeBufferInfo);
+  // gl.depthMask(true);
+  
+  //soluzione corretta
+  gl.cullFace(gl.FRONT);
+  webglUtils.drawBufferInfo(gl, cubeBufferInfo);
+  gl.cullFace(gl.BACK);
+  webglUtils.drawBufferInfo(gl, cubeBufferInfo);
+
+    requestAnimationFrame(drawScene);
+  }
+}
+
+canvas.addEventListener('mousedown', (e) => {
+  mouseDown = true;
+  lastMouseX = e.clientX;
+  lastMouseY = e.clientY;
+});
+
+canvas.addEventListener('mouseup', () => {
+  mouseDown = false;
+});
+
+canvas.addEventListener('mousemove', (e) => {
+  if (!mouseDown) return;
+
+  const deltaX = e.clientX - lastMouseX;
+  const deltaY = e.clientY - lastMouseY;
+
+  lastMouseX = e.clientX;
+  lastMouseY = e.clientY;
+
+  const sensitivity = 0.01;
+  yaw += deltaX * sensitivity;
+  pitch += deltaY * sensitivity;
+});
+
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault(); // evita lo scroll della pagina
+
+  const zoomSpeed = 0.1;
+  cameraRadius += e.deltaY * zoomSpeed * 0.01;
+
+  // Limiti min/max per evitare problemi
+  cameraRadius = Math.max(0.5, Math.min(10, cameraRadius));
+});
+
+main();
+</script>
+</html>

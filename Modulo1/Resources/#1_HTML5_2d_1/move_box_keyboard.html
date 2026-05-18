@@ -1,0 +1,78 @@
+
+<!DOCTYPE HTML>
+<HTML>
+	<HEAD>
+		<TITLE>The Canvas Tag</TITLE>
+	<BODY>
+	<HEADER>
+		<P>Give FOCUS to canvas, then W, A, S, D keys to move</P>
+	</HEADER>
+	<STYLE>
+	#mycanvas {
+		margin: 10px;
+		padding: 10px;
+		background: #ffffff;
+		border: solid #0000FF;
+	}
+    </STYLE>
+    </BODY>
+    </HEAD>
+	<!--browser doesn't make the canvas "focusable". The best 
+		workaround I could come up with is to set the tabindex 
+		on the canvas-->
+		<CANVAS WIDTH="400" HEIGHT="400" ID="mycanvas" tabindex="0">
+					Canvas tag not supported
+		</CANVAS>
+	</SECTION>
+	<SCRIPT>
+		var canvas = document.getElementById("mycanvas");
+		canvas.addEventListener('keydown', doKeyDown, true);
+
+		canvas_context = canvas.getContext("2d");
+		canvas_context.fillRect(100, 100, 50, 30);
+
+		var x = 100;
+		var y = 100;
+
+		function doKeyDown(e){
+			//====================
+			//	THE W KEY
+			//====================
+			if (e.keyCode == 87) {
+				clearCanvas();
+				y = y - 10;
+				canvas_context.fillRect(x, y, 50, 30);
+			}
+			//====================
+			//	THE S KEY
+			//====================
+			if (e.keyCode == 83) {
+				clearCanvas();
+				y = y + 10;
+				canvas_context.fillRect(x, y, 50, 30);
+			}
+			//====================
+			//	THE A KEY
+			//====================
+			if (e.keyCode == 65) {
+				clearCanvas();
+				x = x - 10;
+				canvas_context.fillRect(x, y, 50, 30);
+			}
+			//====================
+			//	THE D KEY
+			//====================
+			if (e.keyCode == 68) {
+				clearCanvas();
+				x = x + 10;
+				canvas_context.fillRect(x, y, 50, 30);
+			}
+		}
+
+		function clearCanvas() {
+			canvas.width = canvas.width;
+		}
+	</SCRIPT>
+
+</HTML>
+

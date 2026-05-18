@@ -1,0 +1,201 @@
+<!doctype html>
+<html>
+  <head>
+      <!--per ricaricare sempre la pagina da zero e non usare la cache-->
+      <META HTTP-EQUIV=”Pragma” CONTENT=”no-cache”>
+      <META HTTP-EQUIV=”Cache-Control” CONTENT=”no-cache”>
+      <!--per definire la dimensione e posizione dell'elemento canvas;
+        se i valori di width ed height impostati qui sono superiori a
+        corrispondenti settati in <canvas width= .. height=.. l'immagine
+        verra' adattata ingrandendola, mentre se i valori sono inferiori,
+        l'iimagine verra' adattata rimpicciolendola-->
+      <style>
+        body {
+            background: #dddddd;
+        }
+        #my_Canvas {
+            margin: 10px;
+            padding: 5px;
+            background: #ffffff;
+            border: thin inset #aaaaaa;
+        }
+    </style>
+   </head>
+
+<body>
+
+<script src="resources/m4.js"></script>
+
+<canvas width="500" height="500" id="my_Canvas"></canvas>
+<!-- <canvas id="my_Canvas" width="500" height="500" style="border:1px solid #d3d3d3;top: 80px; left: 80px; position: absolute;"></canvas>-->
+
+<script>
+/*============= Creating a canvas ======================*/ 
+var canvas = document.getElementById('my_Canvas');
+gl = canvas.getContext('experimental-webgl');
+/*========== Defining and storing the geometry ==========*/
+var vertices=[
+-1,-1,-1,1, 1,-1,-1,1, 1,1,-1,1, -1,1,-1,1, -1,-1,1,1, 1,-1,1,1, 1,1,1,1, -1,1,1,1];
+var indices = [
+0,1, 1,2, 2,3, 3,0, 4,5, 5,6, 6,7, 7,4, 0,4, 1,5, 2,6, 3,7];
+
+// Create and store data into vertex buffer 
+var vertex_buffer = gl.createBuffer (); 
+gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer); 
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+
+// Create and store data into index buffer
+var index_buffer= gl.createBuffer (); 
+gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer); 
+gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW); 
+
+/*=================== SHADERS =================== */
+var vertCode='attribute vec3 position;'+
+'uniform mat4 Pmatrix;'+ 
+'uniform mat4 Vmatrix;'+
+'uniform mat4 Mmatrix;'+
+'void main(void) { '+
+'gl_Position = Pmatrix*Vmatrix*Mmatrix*vec4(position, 1.);'+ 
+'}';
+var fragCode='precision mediump float;'+ 
+'void main(void) {'+
+'gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);'+ 
+'}';
+
+var vertShader = gl.createShader(gl.VERTEX_SHADER); 
+gl.shaderSource(vertShader, vertCode); 
+gl.compileShader(vertShader);
+
+var fragShader = gl.createShader(gl.FRAGMENT_SHADER); 
+gl.shaderSource(fragShader, fragCode); 
+gl.compileShader(fragShader);
+
+var shaderprogram=gl.createProgram(); 
+gl.attachShader(shaderprogram, vertShader); 
+gl.attachShader(shaderprogram, fragShader);
+gl.linkProgram(shaderprogram);
+
+/*======== Associating attributes to vertex shader =====*/
+gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+var _position = gl.getAttribLocation(shaderprogram, "position"); 
+gl.vertexAttribPointer(_position, 4, gl.FLOAT, false, 0, 0); 
+gl.enableVertexAttribArray(_position);
+
+/*======== Get uniform location from vertex shader =====*/
+var _Pmatrix = gl.getUniformLocation(shaderprogram, "Pmatrix"); 
+var _Vmatrix = gl.getUniformLocation(shaderprogram, "Vmatrix"); 
+var _Mmatrix = gl.getUniformLocation(shaderprogram, "Mmatrix");
+
+gl.useProgram(shaderprogram);   
+
+/*==================== MATRIX ====================== */
+function get_projection1(angle, a) {
+var ang=Math.tan(0.5*angle*Math.PI/180);//angle*.5 
+return [
+   1/(a*ang), 0, 0, 0,
+   0, 1/ang,  0, 0,
+   0, 0, 0, -1,
+   0, 0, 0, 0 ];
+} 
+
+function get_projection2(angle, a, zMin, zMax) {
+var ang=Math.tan(0.5*angle*Math.PI/180);//angle*.5 
+return [
+   1/(a*ang), 0 ,   0, 0,
+   0, 1/ang,  0, 0,
+   0, 0, -(zMax+zMin)/(zMax-zMin), -1,
+   0, 0, -(2*zMax*zMin)/(zMax-zMin), 0 ];
+} 
+
+function degToRad(d) {
+    return d * Math.PI / 180;
+}
+
+var mouseDown=function(e) {
+    drag=true;
+    old_x=e.pageX, old_y=e.pageY;
+    e.preventDefault();
+    return false;
+};
+
+var mouseUp=function(e){
+    drag=false;
+};
+
+var mouseMove=function(e) {
+   if (!drag) return false; 
+   dX=(e.pageX-old_x)*2*Math.PI/canvas.width, 
+   dY=(e.pageY-old_y)*2*Math.PI/canvas.height; 
+   THETA+=dX;
+   PHI+=dY;
+   old_x=e.pageX, old_y=e.pageY; 
+   e.preventDefault();
+};
+
+/*=================== Drawing =================== */
+var animate=function(time) {
+      if (!drag) {
+         dX*=AMORTIZATION, dY*=AMORTIZATION;
+         THETA+=dX, PHI+=dY;
+      }
+
+//definizione mo_matrix
+ var mo_matrix = m4.xRotation(THETA);
+ mo_matrix = m4.yRotate(mo_matrix, PHI);
+         
+ gl.clearColor(0.75, 0.75, 0.75, 1); 
+ gl.viewport(0.0, 0.0, canvas.width, canvas.height); 
+ gl.clear(gl.COLOR_BUFFER_BIT);
+
+ gl.uniformMatrix4fv(_Mmatrix, false, mo_matrix);
+
+ gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
+ gl.drawElements(gl.LINES, indices.length, gl.UNSIGNED_SHORT, 0);
+ window.requestAnimationFrame(animate); 
+}
+
+// Compute the projection matrix with near and far plane
+var proj_matrix = m4.perspective(degToRad(40), canvas.width/canvas.height, 1, 100);
+
+//matrice di proiezione senza near e far palne
+//var proj_matrix=get_projection1(40, canvas.width/canvas.height);
+
+//matrice di proiezione con near e far plane
+//var proj_matrix=get_projection2(40, canvas.width/canvas.height, 1, 100);
+
+//console.log(proj_matrix);
+
+var cameraPosition = [0, 0, 5];
+var up = [0, 1, 0];
+var target = [0, 0, 0];
+// Compute the camera's matrix using look at.
+var view_matrix = m4.lookAt(cameraPosition, target, up);
+//console.log(view_matrix);
+// Make a view matrix from the camera matrix.
+var view_matrix = m4.inverse(view_matrix);
+//console.log(view_matrix);
+
+// var PV_matrix=[];
+// //proj_matrix*view_matrix*mo_matrix
+// PV_matrix=m4.multiply(proj_matrix,view_matrix);
+
+/*================= Mouse events ======================*/
+var AMORTIZATION=0.95;
+var drag=false;
+var old_x, old_y;
+var dX=0, dY=0;
+
+canvas.addEventListener("mousedown", mouseDown, false); 
+canvas.addEventListener("mouseup", mouseUp, false); 
+canvas.addEventListener("mouseout", mouseUp, false); 
+canvas.addEventListener("mousemove", mouseMove, false);
+
+var THETA=0, PHI=0;
+
+gl.uniformMatrix4fv(_Pmatrix, false, proj_matrix); 
+gl.uniformMatrix4fv(_Vmatrix, false, view_matrix);
+animate(0);
+
+</script>
+</body>
+</html>  

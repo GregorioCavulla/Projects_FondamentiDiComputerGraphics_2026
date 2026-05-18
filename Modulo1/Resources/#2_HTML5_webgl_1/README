@@ -1,0 +1,34 @@
+Descrizione codici HTML5+canvas+webgl+JavaScript
+
+Triangle.html            disegna un triangolo; esempio in WebGL Fundamentas
+
+triangle_lines.html      come il precedene, ma disegna solo i lati del triangolo
+
+draw_triang_array.html   disegna un triangolo; codice commentato riga per riga
+
+draw_triang_element.html come il precedente, ma usa drawElements
+
+draw_triang_element_translate.html matrice di traslazione
+
+draw_triang_element_scale.html  passa come uniform matrice di scala
+
+draw_triang_element_rot.html passa come uniform la matrice di rotazione
+
+draw_triang_element_rot2.html passa due valori come uniform e definisce 
+                              la matrice nel vertex shader
+
+draw_triang_array2.html  disegna due triangoli e serve per mettere in evidenza come
+                         è posizionato il cubo WebGL
+
+draw_square_element_fill.html disegna un quadrato (due triangoli colorati)
+
+draw_square_element_lines.html disegna i lati di un quadrato
+
+(prima vedi slide: cg7.4_rasterizing.pdf)
+
+draw_square_element_interp_color.html interpolazione colore a partire dai vertici di un quadrato
+
+draw_square_element_lines_interp_color.html interpolazione colore, ma dei lati di un quadrato
+
+draw_triang_element_texture.html applica una texture ad un triangolo; interpolazione bilineare;
+                                 modificare il codice per applicare la texture ad una geometria quadrato.

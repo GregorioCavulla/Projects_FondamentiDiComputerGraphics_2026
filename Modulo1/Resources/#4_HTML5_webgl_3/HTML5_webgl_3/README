@@ -1,0 +1,38 @@
+Descrizione codici HTML5+canvas+webgl+JavaScript
+
+cube_shading.html+.js         rotazione di un cubo su assi coordinati
+                              e rendering con Gouraud Shading (vertex shader)
+
+cube_color_shading.html+.js   vista di un cubo + rotazione su assi coordinati,
+                              rendering con Gouraud Shading con facce colorate
+                              e utilizzo di GUI  (vertex shader)
+
+F3d_lighting_point.html+.js   vsita di una geometria 3d a forma di F e
+                              illuminazione (fragment shader)
+
+F3d_lighting_point_color_GUI.html+.js vista di una geometria 3d a forma di F,
+                                      illuminazione e GUI (fragment shader)
+
+F3d_lighting_point_specular_power_GUI.html+.js vista di una geometria 3d a forma di F,
+                                               illuminazione e GUI (fragment shader)
+
+view_obj_file_webgl.html+.js.   carica file obj Wavefront + mtl file e lo renderizza
+                                con Phong Shading eventualmente + texture (fragment shader)
+                                   
+cube_texture_perspective_correct.html   cubo che ruota con texture procedurale e 
+                                        correzione Prospettica; no modello di illuminazione
+
+cube_texture_perspective_non_correct.html  cubo che ruota con texture procedurale eventualmente 
+                                           correzione prospettica errata; no modello di illuminazione
+
+cube_texture_atlas.html+.js    cubo che ruota e applicazioni texture su ogni faccia
+
+cube_textute_environment_map.html+.js  cubo che ruota ed esempio di environment mapping
+
+webgl_skybox.html   esempio di definizione di uno skybox ottimale
+
+cube_texture_skybox_environment_map.html  cubo che ruota all'interno di uno skybox + environment mapping
+
+cube_shadow_GUI.html+.js  vista di un cubo con gestione ombre piane
+
+sphere_shadow_mapping_GUI.html+.js  vista di una sfera e utilizzo di shadow buffer

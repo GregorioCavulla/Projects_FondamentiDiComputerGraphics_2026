@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+  <head>
+      <meta charset="UTF-8">
+      <title>The Canvas Tag </title>
+      <style>
+         #mycanvas{border:1px solid blue;}
+      </style>
+  </head>
+
+  <body>
+    <canvas width="420" height="420" id="mycanvas">
+      canvas tag not supported
+    </canvas>
+
+    <script>
+
+      var mc = document.getElementById("mycanvas");
+      var ctx = mc.getContext("2d");
+
+      ctx.fillStyle = "red";
+      ctx.fillRect(10,10,110,50);
+
+    </script>
+  </body>
+</html>  

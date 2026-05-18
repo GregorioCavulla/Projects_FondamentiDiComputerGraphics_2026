@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+  <head>
+      <meta charset="UTF-8">
+      <title>The Canvas Tag </title>
+      <style>
+         #mycanvas{border:1px solid blue; width:400px; height:400px;image-rendering: pixelated;}
+      </style>
+
+  <body>
+    <canvas width="400" height="400" id="mycanvas">
+      canvas tag not supported
+    </canvas>
+  </body>
+  </head>
+    <script>
+
+    var mc = document.getElementById("mycanvas");
+    var ctx = mc.getContext('2d');
+    //ctx.imageSmoothingEnabled = false;
+
+    // //ctx.strokeRect(2,2,16,16);
+    // ctx.lineWidth=1/20;
+    
+    //    ctx.beginPath();
+    //    ctx.arc(10, 10, 5.2, 0, 2 * Math.PI, false);
+    //    ctx.stroke();
+
+    // //    ctx.beginPath();
+    // //    ctx.moveTo(0,0);
+    // //    ctx.lineTo(10,5);
+    // //    ctx.stroke();
+
+// in questo esempio si mappano i punti di controllo in coordinate viewport/schermo
+// e si applica lì l'algoritmo di valutazione (sicuramente più efficiente che valutare
+//in ccordnate window/floating point e mappare i punti valutati)
+//Attenzione però ai casi in cui devo elaborare la curva, per esempio facendo una 
+//suddivisione o un clipping, questi devono essere fatti in coordinate window.
+const W = 400, H = 400;
+mc.width = W;
+mc.height = H;
+
+    // dominio logico
+const xmin = 0, xmax = 20;
+const ymin = 0, ymax = 20;
+
+// mapping manuale (NO scale sul contesto)
+function X(x) { return (x - xmin) * W / (xmax - xmin); }
+function Y(y) { return H - (y - ymin) * H / (ymax - ymin); }
+
+// stile MATLAB-like
+ctx.lineWidth = 1;
+ctx.strokeStyle = "black";
+
+// Bézier
+ctx.beginPath();
+ctx.moveTo(X(2.3), Y(3.7));
+ctx.bezierCurveTo(
+  X(5.1), Y(15.4),
+  X(14.8), Y(12.2),
+  X(17.6), Y(4.1)
+);
+ctx.stroke();
+    </script>
+</html>  

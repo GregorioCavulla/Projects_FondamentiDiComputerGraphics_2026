@@ -1,0 +1,102 @@
+<!doctype html>
+<html>
+<head>
+    <title>The Canvas Tag </title>
+    <style>
+         #canvas{border:2px solid red;}
+    </style>
+</head>
+<body>
+<canvas width="300" height="150" id="canvas"></canvas>
+
+<script>
+'use strict';
+/*============ Creating a canvas =================*/
+const canvas = document.querySelector('canvas');
+const gl = canvas.getContext('webgl');
+/*====================== Shaders =======================*/
+// Vertex shader source code
+const vsGLSL = `
+attribute vec4 position;
+void main() {
+    gl_Position = position;
+}`;
+// Fragment shader source code
+const fsGLSL = `
+precision highp float;
+
+void main() {
+    gl_FragColor = vec4(0, 1, 0.5, 1);
+}`;
+// Create a vertex shader object
+const vertexShader = gl.createShader(gl.VERTEX_SHADER);
+// Load vertex shader source code
+gl.shaderSource(vertexShader, vsGLSL);
+// Compile the vertex shader 
+gl.compileShader(vertexShader);
+if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
+  throw new Error(gl.getShaderInfoLog(vertexShader))
+};
+// Create fragment shader object
+const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+// Load fragment shader source code
+gl.shaderSource(fragmentShader, fsGLSL);
+// Compile the fragmentt shader 
+gl.compileShader(fragmentShader);
+if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
+  throw new Error(gl.getShaderInfoLog(fragmentShader))
+};
+// Create a shader program object to 
+// store the combined shader program
+const prg = gl.createProgram();
+// Attach a vertex shader 
+gl.attachShader(prg, vertexShader);
+// Attach a fragment shader 
+gl.attachShader(prg, fragmentShader);
+// Link both the programs 
+gl.linkProgram(prg);
+if (!gl.getProgramParameter(prg, gl.LINK_STATUS)) {
+  throw new Error(gl.getProgramInfoLog(prg))
+};
+// NOTE! These are only here to unclutter the diagram.
+// It is safe to detach and delete shaders once
+// a program is linked though it is arguably not common.
+// and I usually don't do it.
+gl.detachShader(prg, vertexShader);
+gl.deleteShader(vertexShader);
+gl.detachShader(prg, fragmentShader);
+gl.deleteShader(fragmentShader);
+// Get the attribute location
+const positionLoc = gl.getAttribLocation(prg, 'position');
+/*========== Defining and storing the geometry =========*/ 
+// in clip space
+const vertexPositions = new Float32Array([
+    0,   0.7,
+  0.5,  -0.7,
+ -0.5,  -0.7,
+]);
+// Create an empty buffer object to store vertex buffer
+const positionBuffer = gl.createBuffer();
+// Bind appropriate array buffer to it 
+gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+// Pass the vertex data to the buffer
+gl.bufferData(gl.ARRAY_BUFFER, vertexPositions, gl.STATIC_DRAW);
+// Enable the attribute 
+gl.enableVertexAttribArray(positionLoc);
+// Point an attribute to the currently bound VBO 
+gl.vertexAttribPointer(
+    positionLoc,  
+    2,            // 2 values per vertex shader iteration
+    gl.FLOAT,     // data is 32bit floats
+    false,        // don't normalize
+    0,            // stride (0 = auto)
+    0,            // offset into buffer
+);
+// Use the combined shader program object 
+gl.useProgram(prg);
+// Draw the triangle: compute 3 vertices for 1 triangle
+gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+</script>
+</body>
+</html>

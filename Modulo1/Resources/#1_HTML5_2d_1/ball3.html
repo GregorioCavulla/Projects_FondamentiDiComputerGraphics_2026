@@ -1,0 +1,61 @@
+<!doctype html>
+<html>
+	<body>
+      <head>
+          <style type="text/css">
+             canvas { border: 2px solid blue; }
+          </style>
+      </head>
+  <HEADER>
+    <P>Give FOCUS to canvas, then mousedown, mouseup,  to move</P>
+  </HEADER>
+	   <canvas width="300" height="300" id="my_Canvas"></canvas>
+	   <script>
+/*============= Creating a canvas =================*/ 
+    var x = 150;
+    var y = 150;
+    var dx=2;
+    var dy=4;
+    var r = 25;
+    var larghezza=300;
+    var lunghezza=300;
+    var cg;
+
+    var canvas = document.getElementById('my_Canvas');  
+    cg = canvas.getContext("2d");
+
+ var mouseDown=function(e) {
+    dx = 2*dx;
+    dy = 2*dy;
+ };
+var mouseUp=function(e) {
+ 
+ };
+var mouseMove=function(e) {
+    dx = dx/2 + 1;
+    dy = dy/2 + 1;
+ };
+canvas.addEventListener("mousedown", mouseDown, false); 
+canvas.addEventListener("mouseup", mouseUp, false); 
+//canvas.addEventListener("mouseout", mouseUp, false); 
+canvas.addEventListener("mousemove", mouseMove, false);
+/*================= Drawing ===========================*/ 
+var time_old=0;
+var animate=function(time) {
+      cg.clearRect(0,0,larghezza,lunghezza);
+      cg.beginPath();
+      cg.fillStyle = 'red';
+      cg.arc(x, y, r, 0, Math.PI*2, true); 
+      cg.closePath();
+      cg.fill();
+//      cg.stroke();
+      if(x+r >= larghezza || x-r <= 0) dx = -dx;
+      if(y+r >= lunghezza || y-r <= 0) dy = -dy;
+      x += dx;
+      y += dy;
+      window.requestAnimationFrame(animate); 
+}
+        animate(0);
+      </script>
+   </body>
+</html>

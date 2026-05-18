@@ -1,0 +1,21 @@
+<!DOCTYPE HTML>
+<html>
+   <head>
+     <title>The Canvas Tag </title>
+     <style>
+         #mycanvas{border:1px solid red;}
+      </style>
+   </head>
+  <body>
+     <canvas id="mycanvas" width="600" height="200"></canvas> 
+     <script>
+      window.onload = function() {
+         var canvas = document.getElementById("mycanvas");
+         var context = canvas.getContext("2d");
+         var img = document.getElementById("myimage");
+         context.drawImage(img, 50, 100);
+     };
+     </script>
+     <img id="myimage" src="star.png">
+   </body>
+</html>
