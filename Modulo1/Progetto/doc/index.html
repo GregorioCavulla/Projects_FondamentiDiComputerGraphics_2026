@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Relazione Progetto - Fondamenti di Computer Grafica</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; max-width: 900px; margin: 0 auto; padding: 20px; }
+        h1, h2, h3 { color: #2c3e50; }
+        code { background: #f4f4f4; padding: 2px 5px; border-radius: 3px; }
+        .author { font-style: italic; color: #555; }
+    </style>
+</head>
+<body>
+    <h1>Il Cyberspazio di Porygon</h1>
+    <p class="author">Relazione per il progetto di Fondamenti di Computer Grafica</p>
+    
+    <h2>1. Descrizione dell'Applicazione</h2>
+    <p>
+        L'applicazione simula una stanza nel cyberspazio in cui risiede il noto Pokémon virtuale Porygon. 
+        L'obiettivo del progetto è dimostrare le competenze acquisite nel corso combinando modelli generati gerarchicamente 
+        con forme primitive, caricamento di modelli complessi (file `.obj`) e algoritmi di shading variabili (Gouraud/Phong).
+    </p>
+
+    <h2>2. Funzionalità Previste</h2>
+    <ul>
+        <li><strong>Costruzione Gerarchica:</strong> Porygon è costruito partendo da primitive grafiche di base, posizionate in una struttura ad albero con <code>m4.js</code>.</li>
+        <li><strong>Importazione Modelli:</strong> Possibilità di far evolvere Porygon in "Porygon2", caricando dinamicamente un file <code>.obj</code> usando <code>mesh_utils.js</code>.</li>
+        <li><strong>Modelli di Illuminazione:</strong> Scelta tra rendering Flat, Gouraud e Phong tramite interfaccia (utilizzando <code>dat.gui.js</code>).</li>
+        <li><strong>Texturing & Effetti:</strong> Verranno incluse cubemap per l'ambiente (cyberspazio), Bump mapping su piattaforme specifiche e Alpha blending per simulare attacchi speciali con barriere traslucide.</li>
+        <li><strong>Requisito Foto:</strong> La fototessera dello studente è mappata dinamicamente come texture sui terminali dell'ambiente, oltre ad essere presente a schermo in formato 2D sovrapposto per garantire l'identificabilità dell'autore come richiesto dalle linee guida.</li>
+    </ul>
+
+    <h2>3. Scelte Implementative</h2>
+    <p>
+        Il progetto fa rigorosamente uso solo delle 5 librerie autorizzate (<code>glm_utils.js</code>, <code>mesh_utils.js</code>, <code>webgl-utils.js</code>, <code>m4.js</code>, <code>dat.gui.js</code>). 
+        La telecamera (ruotabile attorno alla scena) sarà controllata tramite interazioni con i listener del mouse registrati direttamente sul canvas WebGL, senza l'uso di librerie terze vietate come <code>trackball-rotator.js</code>.
+    </p>
+
+</body>
+</html>

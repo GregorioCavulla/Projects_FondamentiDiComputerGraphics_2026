@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Porygon Cyberspace</title>
+    
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Courier New', Courier, monospace; }
+        canvas { display: block; width: 100%; height: 100%; }
+
+        /* HUD STILE POKEMON */
+        #ui-container {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 150px;
+            display: flex;
+            gap: 10px;
+            pointer-events: none; /* Lascia passare i click al canvas se non sui box */
+        }
+
+        .hud-box {
+            background: rgba(255, 255, 255, 0.9);
+            border: 6px solid #444;
+            border-radius: 10px;
+            padding: 15px;
+            pointer-events: auto;
+            box-shadow: inset 0 0 0 4px #a85858;
+        }
+
+        #dialog-box {
+            flex: 1;
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+            text-shadow: 1px 1px 0px #aaa;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        #menu-box {
+            width: 300px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 10px;
+        }
+
+        button {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 18px;
+            font-weight: bold;
+            background: #f0f0f0;
+            border: 2px solid #333;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+        button:hover:not(:disabled) { background: #d0d0d0; transform: scale(1.05); }
+        button:active:not(:disabled) { background: #aaa; }
+        button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .btn-evo { background: #ffd700; border-color: #b8860b; color: #b8860b; }
+        .btn-evo:hover:not(:disabled) { background: #ffea00; }
+
+        /* BOX FOTO STUDENTE VERTICALE IN ALTO A DESTRA */
+        .photo-badge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 120px;
+            height: 160px;
+            background: rgba(255, 255, 255, 0.8);
+            border: 3px solid #666;
+            border-radius: 5px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            box-sizing: border-box;
+            box-shadow: 2px 2px 10px rgba(0,255,0,0.2);
+        }
+        .photo-badge img {
+            width: 90px;
+            height: 90px;
+            background: #ccc;
+            border: 2px solid #333;
+            margin-bottom: 10px;
+            object-fit: cover;
+        }
+        .photo-badge .badge-text {
+            font-size: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+    </style>
+
+    <script src="lib/webgl-utils.js"></script>
+    <script src="lib/m4.js"></script>
+    <script src="lib/glm_utils.js"></script>
+    <script src="lib/dat.gui.js"></script>
+    <script src="lib/mesh_utils.js"></script>
+
+    <!-- SHADER STANZA (Solo colore) -->
+    <script id="grid-vertex-shader" type="x-shader/x-vertex">
+        attribute vec4 a_position;
+        uniform mat4 u_world;
+        uniform mat4 u_view;
+        uniform mat4 u_projection;
+        void main() { gl_Position = u_projection * u_view * u_world * a_position; }
+    </script>
+    <script id="grid-fragment-shader" type="x-shader/x-fragment">
+        precision mediump float;
+        uniform vec4 u_color;
+        void main() { gl_FragColor = u_color; }
+    </script>
+    
+    <!-- SHADER COLORE SOLIDO CON LUCE (Porygon 1) -->
+    <script id="color-vertex-shader" type="x-shader/x-vertex">
+        attribute vec4 a_position;
+        attribute vec3 a_normal;
+        uniform mat4 u_world;
+        uniform mat4 u_view;
+        uniform mat4 u_projection;
+        varying vec3 v_normal;
+        void main() {
+            gl_Position = u_projection * u_view * u_world * a_position;
+            v_normal = mat3(u_world) * a_normal;
+        }
+    </script>
+    <script id="color-fragment-shader" type="x-shader/x-fragment">
+        precision mediump float;
+        varying vec3 v_normal;
+        uniform vec3 u_reverseLightDirection;
+        uniform vec4 u_color;
+        void main() {
+            vec3 normal = normalize(v_normal);
+            float light = dot(normal, u_reverseLightDirection);
+            gl_FragColor = u_color;
+            gl_FragColor.rgb *= (light * 0.7 + 0.3); // simple lighting
+        }
+    </script>
+
+    <!-- SHADER TEXTURE CON SCARTO ALFA (Porygon 2) -->
+    <script id="vertex-shader" type="x-shader/x-vertex">
+        attribute vec4 a_position;
+        attribute vec3 a_normal;
+        attribute vec2 a_texcoord;
+
+        uniform mat4 u_world;
+        uniform mat4 u_view;
+        uniform mat4 u_projection;
+
+        varying vec3 v_normal;
+        varying vec2 v_texcoord;
+
+        void main() {
+            gl_Position = u_projection * u_view * u_world * a_position;
+            v_normal = mat3(u_world) * a_normal;
+            v_texcoord = a_texcoord;
+        }
+    </script>
+    <script id="fragment-shader" type="x-shader/x-fragment">
+        precision mediump float;
+
+        varying vec3 v_normal;
+        varying vec2 v_texcoord;
+
+        uniform vec3 u_reverseLightDirection;
+        uniform sampler2D u_texture;
+
+        void main() {
+            vec3 normal = normalize(v_normal);
+            float light = dot(normal, u_reverseLightDirection);
+            
+            vec4 texColor = texture2D(u_texture, v_texcoord);
+            if(texColor.a < 0.1) discard; 
+            
+            gl_FragColor = texColor;
+            gl_FragColor.rgb *= (light * 0.7 + 0.3);
+        }
+    </script>
+
+    <!-- Codice applicativo e primitive -->
+    <script src="primitives.js"></script>
+    <script src="main.js"></script>
+</head>
+<body onload="main()">
+    <canvas id="webgl-canvas"></canvas>
+
+    <div id="ui-container">
+        <div id="dialog-box" class="hud-box">
+            Inizializzazione Cyberspazio...<br>Premi STARTUP per avviare il processo.
+        </div>
+        <div id="menu-box" class="hud-box">
+            <button id="btn-startup">STARTUP</button>
+            <button id="btn-azione1" disabled>TACKLE</button>
+            <button id="btn-azione2" disabled>CYBER-DASH</button>
+            <button id="btn-evolve" class="btn-evo" disabled>UP-GRADE</button>
+        </div>
+    </div>
+
+    <!-- Foto Studente in alto a destra -->
+    <div class="photo-badge">
+        <!-- Inserisci qui l'immagine che vorrai usare -->
+        <img src="foto_studente.jpg" alt="Foto" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\'%3E%3Crect width=\'100\' height=\'100\' fill=\'%23ddd\'/%3E%3Ctext x=\'50\' y=\'50\' font-family=\'Arial\' font-size=\'12\' text-anchor=\'middle\' dominant-baseline=\'middle\'%3EFoto%3C/text%3E%3C/svg%3E'"/>
+        <div class="badge-text" id="student-name">Studente Cognome<br>Matr. 123456</div>
+    </div>
+
+</body>
+</html>
