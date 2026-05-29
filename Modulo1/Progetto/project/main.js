@@ -7,6 +7,8 @@ let renderablesPorygon2 = [];
 
 // Buffer per la stanza cubo/grigliata
 let gridBuffer, gridVertexCount;
+let beamVerticalBuffer, beamVerticalCount; // raggi verticali del cilindro
+let beamRingBuffer, beamRingCount;         // singolo anello unitario riusabile
 
 // Stati possibili della macchina a stati
 const STATE = Object.freeze({
@@ -24,7 +26,7 @@ const ASSEMBLE_DURATION = 3000;
 
 // Macchina a stati generale
 let gameState = STATE.INIT;
-let viewMode = VIEW.TEXTURE;
+let viewMode = VIEW.MESH; // si parte in wireframe; passa a SOLID quando l'assemblaggio finisce
 let assembleStartTime = 0;
 
 let isDragging = false;
@@ -94,9 +96,14 @@ async function main() {
     setupGUI();
     createGridRoom();
 
-    canvas.addEventListener('mousedown', (e) => { isDragging = true; previousMousePosition = { x: e.offsetX, y: e.offsetY }; });
+    canvas.addEventListener('mousedown', (e) => {
+        // Nello stato iniziale i pezzi sono fermi sul pavimento e non si
+        // possono ruotare: l'utente deve prima premere STARTUP.
+        if (gameState === STATE.INIT) return;
+        isDragging = true; previousMousePosition = { x: e.offsetX, y: e.offsetY };
+    });
     canvas.addEventListener('mousemove', (e) => {
-        if (isDragging) {
+        if (isDragging && gameState !== STATE.INIT) {
             targetRotationX += (e.offsetX - previousMousePosition.x) * 0.01;
             targetRotationY += (e.offsetY - previousMousePosition.y) * 0.01;
             previousMousePosition = { x: e.offsetX, y: e.offsetY };
@@ -506,14 +513,35 @@ function initPorygon1Animation() {
         { verts: P1_TAIL_VERTS,   faces: P1_TAIL_FACES,   color: CYAN, group: 'tail' },
     ];
 
-    // Una sola startMatrix per gruppo, così pezzi con stesso group (corpo+petto,
-    // testa+becco+occhi) restano uniti dall'inizio fino al montaggio finale.
+    // Layout iniziale deterministico dei gruppi sul pavimento (y = -2 del
+    // gridroom). Ogni gruppo viene appoggiato in modo che il suo vertice
+    // pi\u00f9 basso tocchi il piano, niente compenetrazioni n\u00e9 rotazioni:
+    // questo evita anche deformazioni durante l'interpolazione di
+    // assemblaggio (start -> identit\u00e0 \u00e8 una pura traslazione).
+    const FLOOR_Y = -2.0;
+    const groupLayoutXZ = {
+        body:  [ 0.0,  0.0],
+        head:  [ 0.0,  2.2],
+        footR: [-2.2, -0.4],
+        footL: [ 2.2, -0.4],
+        tail:  [ 0.0, -2.4],
+    };
+    function groupMinY(name) {
+        let minY = Infinity;
+        for (const p of parts) {
+            if (p.group !== name || !p.faces || p.faces.length === 0) continue;
+            for (const v of p.verts) if (v[1] < minY) minY = v[1];
+        }
+        return minY === Infinity ? 0 : minY;
+    }
     const groupStart = {};
     function startMatrixFor(group) {
         if (!groupStart[group]) {
-            let m = m4.translation((Math.random() - 0.5) * 4.0, -1.8, (Math.random() - 0.5) * 4.0);
-            m = m4.yRotate(m, Math.random() * Math.PI * 2);
-            groupStart[group] = m;
+            const xz = groupLayoutXZ[group] || [0, 0];
+            const liftY = FLOOR_Y - groupMinY(group);
+            // Solo traslazione: nessuna rotazione -> l'interpolazione lineare
+            // verso l'identità resta una traslazione (no shear/scale).
+            groupStart[group] = m4.translation(xz[0], liftY, xz[1]);
         }
         return groupStart[group];
     }
@@ -564,6 +592,99 @@ function createGridRoom() {
     gridBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, gridBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(lines), gl.STATIC_DRAW);
+
+    createAssemblyBeam();
+}
+
+// Cilindro di raggi bianchi + anelli orizzontali animati: si accende durante
+// l'assemblaggio e dà il classico effetto "transporter/portale cyberspaziale".
+// Geometria normalizzata: raggi verticali su cilindro unitario (raggio = 1)
+// e un singolo anello unitario riusato a varie altezze. Raggio e altezza
+// effettivi sono applicati a runtime via matrici scale/translate, così possiamo
+// far crescere il cilindro da r=0 a r=MAX e far scorrere gli anelli lungo Y.
+const BEAM_Y_BOT = -2.0;
+const BEAM_Y_TOP =  3.0;
+const BEAM_MAX_RADIUS = 1.2;
+
+function createAssemblyBeam() {
+    // Raggi verticali (molti): cilindro unitario in XZ.
+    const N_BEAMS = 96;
+    const vlines = [];
+    for (let i = 0; i < N_BEAMS; i++) {
+        const a = (i / N_BEAMS) * Math.PI * 2;
+        const x = Math.cos(a), z = Math.sin(a);
+        vlines.push(x, BEAM_Y_BOT, z, x, BEAM_Y_TOP, z);
+    }
+    beamVerticalBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, beamVerticalBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vlines), gl.STATIC_DRAW);
+    beamVerticalCount = vlines.length / 3;
+
+    // Anello unitario in XZ (y=0): lo trasliamo a runtime per le K copie.
+    const RING_SEGS = 64;
+    const rlines = [];
+    for (let i = 0; i < RING_SEGS; i++) {
+        const a1 = (i / RING_SEGS) * Math.PI * 2;
+        const a2 = ((i + 1) / RING_SEGS) * Math.PI * 2;
+        rlines.push(Math.cos(a1), 0, Math.sin(a1), Math.cos(a2), 0, Math.sin(a2));
+    }
+    beamRingBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, beamRingBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(rlines), gl.STATIC_DRAW);
+    beamRingCount = rlines.length / 3;
+}
+
+// Disegna i raggi verticali (scalati in raggio) + K anelli che scorrono lungo Y.
+// `progress` è 0..1 sul tempo di assemblaggio: regola crescita raggio e alpha.
+function drawAssemblyBeam(now, progress, projectionMatrix, viewMatrix) {
+    gl.useProgram(gridProgram);
+    const proj  = gl.getUniformLocation(gridProgram, "u_projection");
+    const view  = gl.getUniformLocation(gridProgram, "u_view");
+    const world = gl.getUniformLocation(gridProgram, "u_world");
+    const col   = gl.getUniformLocation(gridProgram, "u_color");
+    const pos   = gl.getAttribLocation(gridProgram, "a_position");
+    gl.uniformMatrix4fv(proj, false, projectionMatrix);
+    gl.uniformMatrix4fv(view, false, viewMatrix);
+
+    // Raggio: cresce da 0 a MAX nel primo 55% dell'assemblaggio, ease-out cubico.
+    const grow = Math.min(progress / 0.55, 1.0);
+    const eased = 1 - Math.pow(1 - grow, 3);
+    const radius = BEAM_MAX_RADIUS * eased;
+
+    // Alpha: fade-in iniziale + fade-out finale, con leggera pulsazione.
+    const fadeIn  = Math.min(progress / 0.10, 1.0);
+    const fadeOut = (progress > 0.85) ? Math.max(0, (1 - progress) / 0.15) : 1.0;
+    const pulse   = 0.65 + 0.35 * Math.sin(now * 0.012);
+    const alpha   = 0.85 * fadeIn * fadeOut * pulse;
+
+    // --- Raggi verticali ---
+    let w = m4.yRotate(m4.identity(), now * 0.0015);
+    w = m4.scale(w, radius, 1, radius);
+    gl.uniformMatrix4fv(world, false, w);
+    gl.uniform4fv(col, [1, 1, 1, alpha]);
+    gl.bindBuffer(gl.ARRAY_BUFFER, beamVerticalBuffer);
+    gl.enableVertexAttribArray(pos);
+    gl.vertexAttribPointer(pos, 3, gl.FLOAT, false, 0, 0);
+    gl.drawArrays(gl.LINES, 0, beamVerticalCount);
+
+    // --- Anelli scorrevoli lungo l'altezza ---
+    gl.bindBuffer(gl.ARRAY_BUFFER, beamRingBuffer);
+    gl.vertexAttribPointer(pos, 3, gl.FLOAT, false, 0, 0);
+    const K = 6;             // numero di anelli simultanei
+    const periodMs = 1800;   // tempo per percorrere l'intera altezza
+    const height = BEAM_Y_TOP - BEAM_Y_BOT;
+    for (let k = 0; k < K; k++) {
+        // Ognuno parte sfasato così sono distribuiti uniformemente.
+        const t = ((now / periodMs) + k / K) % 1;
+        const y = BEAM_Y_BOT + t * height;
+        // Fade lieve agli estremi per evitare scatti di apparizione/sparizione.
+        const ringFade = Math.min(1, 5 * Math.min(t, 1 - t));
+        let rw = m4.translation(0, y, 0);
+        rw = m4.scale(rw, radius, 1, radius);
+        gl.uniformMatrix4fv(world, false, rw);
+        gl.uniform4fv(col, [1, 1, 1, alpha * ringFade]);
+        gl.drawArrays(gl.LINES, 0, beamRingCount);
+    }
 }
 
 function updateDialog(text) {
@@ -814,6 +935,8 @@ function render(now) {
     // Transizione ASSEMBLING -> PORYGON1 sincronizzata col tempo reale
     if (gameState === STATE.ASSEMBLING && (now - assembleStartTime) >= ASSEMBLE_DURATION) {
         gameState = STATE.PORYGON1;
+        // Una volta assemblato il modello, mostriamo i colori (richiesta utente).
+        viewMode = VIEW.SOLID;
         updateDialog("Porygon è pronto per la battaglia cyberspaziale!");
         if (btnAtk1) btnAtk1.disabled = false;
         if (btnAtk2) btnAtk2.disabled = false;
@@ -900,6 +1023,12 @@ function render(now) {
     gl.enableVertexAttribArray(gPosLoc);
     gl.vertexAttribPointer(gPosLoc, 3, gl.FLOAT, false, 0, 0);
     gl.drawArrays(gl.LINES, 0, gridVertexCount);
+
+    // 1b. CILINDRO DI RAGGI (solo durante l'assemblaggio)
+    if (gameState === STATE.ASSEMBLING) {
+        const progress = Math.min((now - assembleStartTime) / ASSEMBLE_DURATION, 1.0);
+        drawAssemblyBeam(now, progress, projectionMatrix, viewMatrix);
+    }
 
 
     // 2. DISEGNO PORYGON 1
