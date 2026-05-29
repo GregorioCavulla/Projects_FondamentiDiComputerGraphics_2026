@@ -14,8 +14,8 @@
             bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
-            width: 800px;
-            height: 150px;
+            width: min(800px, calc(100vw - 40px));
+            min-height: 150px;
             display: flex;
             gap: 10px;
             pointer-events: none; /* Lascia passare i click al canvas se non sui box */
@@ -28,10 +28,12 @@
             padding: 15px;
             pointer-events: auto;
             box-shadow: inset 0 0 0 4px #a85858;
+            box-sizing: border-box;
         }
 
         #dialog-box {
             flex: 1;
+            min-width: 0;
             font-size: 20px;
             font-weight: bold;
             color: #333;
@@ -42,10 +44,88 @@
 
         #menu-box {
             width: 300px;
+            flex-shrink: 0;
             display: grid;
             grid-template-columns: 1fr 1fr;
             grid-template-rows: 1fr 1fr;
             gap: 10px;
+        }
+
+        /* Mini pannello comandi in basso a sinistra */
+        #controls-hint {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.55);
+            color: #0f0;
+            border: 1px solid #0f0;
+            border-radius: 6px;
+            padding: 8px 10px;
+            font-size: 11px;
+            line-height: 1.4;
+            pointer-events: none;
+            max-width: 200px;
+        }
+
+        /* Overlay per la numerazione delle facce del corpo (debug) */
+        #face-labels {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            display: none;
+            z-index: 5;
+        }
+        .face-label {
+            position: absolute;
+            top: 0; left: 0;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            font-weight: bold;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid #ff0;
+            border-radius: 50%;
+            min-width: 18px;
+            height: 18px;
+            line-height: 16px;
+            text-align: center;
+            padding: 0 4px;
+            box-sizing: border-box;
+        }
+        /* Etichette testa: bordo ciano per distinguerle dal corpo (giallo) */
+        .face-label-head {
+            border-color: #0ff;
+        }
+
+        /* Layout responsive: sotto i 900px impila i box e riduce dimensioni */
+        @media (max-width: 900px) {
+            #ui-container {
+                flex-direction: column;
+                bottom: 10px;
+                width: calc(100vw - 20px);
+            }
+            #menu-box {
+                width: 100%;
+            }
+            #dialog-box {
+                font-size: 16px;
+                padding: 10px;
+            }
+            button {
+                font-size: 14px !important;
+            }
+            #controls-hint {
+                display: none;
+            }
+            .photo-badge {
+                width: 80px !important;
+                height: 110px !important;
+            }
+            .photo-badge img {
+                width: 60px !important;
+                height: 60px !important;
+            }
         }
 
         button {
@@ -137,7 +217,7 @@
         uniform vec4 u_color;
         void main() {
             vec3 normal = normalize(v_normal);
-            float light = dot(normal, u_reverseLightDirection);
+            float light = abs(dot(normal, u_reverseLightDirection));
             gl_FragColor = u_color;
             gl_FragColor.rgb *= (light * 0.7 + 0.3); // simple lighting
         }
@@ -183,12 +263,11 @@
         }
     </script>
 
-    <!-- Codice applicativo e primitive -->
-    <script src="primitives.js"></script>
     <script src="main.js"></script>
 </head>
 <body onload="main()">
     <canvas id="webgl-canvas"></canvas>
+    <div id="face-labels"></div>
 
     <div id="ui-container">
         <div id="dialog-box" class="hud-box">
@@ -196,10 +275,18 @@
         </div>
         <div id="menu-box" class="hud-box">
             <button id="btn-startup">STARTUP</button>
-            <button id="btn-azione1" disabled>TACKLE</button>
-            <button id="btn-azione2" disabled>CYBER-DASH</button>
-            <button id="btn-evolve" class="btn-evo" disabled>UP-GRADE</button>
+            <button id="btn-azione1" disabled>MESH VIEW</button>
+            <button id="btn-azione2" disabled>SOLID VIEW</button>
+            <button id="btn-evolve" class="btn-evo" disabled>EVOLUZIONE!</button>
         </div>
+    </div>
+
+    <div id="controls-hint">
+        <b>COMANDI</b><br>
+        Mouse drag: ruota<br>
+        Frecce: muovi camera<br>
+        Space: su &nbsp; Shift: giù<br>
+        <b>N</b>: numera facce corpo
     </div>
 
     <!-- Foto Studente in alto a destra -->
