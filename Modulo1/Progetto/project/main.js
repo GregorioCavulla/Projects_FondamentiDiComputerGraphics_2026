@@ -642,15 +642,17 @@ function computeAnimLocalMatrix(group) {
     if (currentAnim.kind === 'atk1') {
         // SALTELLO: testa su, coda su, gambe che ruotano (asse X = orizz.).
         if (group === 'head')  ax = -0.55 * bell;
-        if (group === 'tail')  ax = -0.70 * bell;
+        if (group === 'tail')  ax =  0.70 * bell;
         if (group === 'footR' || group === 'footL') ax = 2 * Math.PI * 3 * t; // 3 giri
     } else if (currentAnim.kind === 'atk2') {
-        // POSA D'ATTACCO: testa giù, coda giù, gambe a V (asse Z).
+        // POSA D'ATTACCO: testa giù, coda giù, gambe a V vista dall'alto.
         if (group === 'head')  ax = 0.45 * bell;
-        if (group === 'tail')  ax = 0.55 * bell;
-        // "Spazzaneve al contrario": zampe aperte verso l'esterno.
-        if (group === 'footR') az = -0.55 * bell; // ruota verso +X (destra esterno)
-        if (group === 'footL') az =  0.55 * bell; // ruota verso -X (sinistra esterno)
+        if (group === 'tail')  ax = -0.55 * bell;
+        // "Spazzaneve al contrario": V vista dall'alto, le punte si
+        // allargano verso il davanti del modello (rotazione attorno
+        // all'asse verticale Y centrata sull'hip joint).
+        if (group === 'footR') ay = -0.55 * bell; // punta verso destra-avanti
+        if (group === 'footL') ay =  0.55 * bell; // punta verso sinistra-avanti
     }
 
     if (ax === 0 && ay === 0 && az === 0) return null;
