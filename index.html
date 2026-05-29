@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fondamenti di Computer Graphics 2026 — Hub</title>
+    <style>
+        :root {
+            --bg-0: #000;
+            --bg-1: #061806;
+            --grid: rgba(0, 255, 80, 0.18);
+            --neon: #00ff66;
+            --neon-dim: #0a8c3a;
+            --pink: #ee8aa6;
+            --cyan: #5fc7d3;
+            --ink: #c9ffd6;
+        }
+
+        * { box-sizing: border-box; }
+        html, body { height: 100%; margin: 0; }
+
+        body {
+            font-family: 'Courier New', ui-monospace, monospace;
+            color: var(--ink);
+            background: radial-gradient(ellipse at center, var(--bg-1) 0%, var(--bg-0) 70%);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Pavimento/soffitto a griglia in stile cyberspazio (TRS) */
+        .grid-floor, .grid-ceiling {
+            position: absolute;
+            left: 50%;
+            width: 220vmax;
+            height: 60vh;
+            transform-origin: 50% 0%;
+            background-image:
+                linear-gradient(var(--grid) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+            background-size: 60px 60px;
+            animation: scroll-grid 6s linear infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .grid-floor {
+            bottom: 0;
+            transform: translateX(-50%) perspective(600px) rotateX(60deg);
+        }
+        .grid-ceiling {
+            top: 0;
+            transform: translateX(-50%) perspective(600px) rotateX(-60deg);
+            opacity: 0.45;
+        }
+        @keyframes scroll-grid {
+            from { background-position: 0 0, 0 0; }
+            to   { background-position: 0 60px, 60px 0; }
+        }
+
+        /* Glow centrale */
+        .glow {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 50% 45%, rgba(0,255,102,0.10) 0%, transparent 55%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        main {
+            position: relative;
+            z-index: 2;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .eyebrow {
+            font-size: 0.85rem;
+            letter-spacing: 0.5em;
+            color: var(--neon-dim);
+            margin: 0 0 12px 0;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            font-size: clamp(1.8rem, 5vw, 3.4rem);
+            margin: 0 0 6px 0;
+            color: var(--neon);
+            text-shadow:
+                0 0 6px rgba(0,255,102,0.7),
+                0 0 22px rgba(0,255,102,0.35);
+            letter-spacing: 0.08em;
+        }
+
+        .subtitle {
+            margin: 0 0 36px 0;
+            color: var(--ink);
+            opacity: 0.75;
+            font-size: 0.95rem;
+            max-width: 620px;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 320px));
+            gap: 28px;
+            justify-content: center;
+            width: 100%;
+            max-width: 760px;
+        }
+
+        .card {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            padding: 26px 22px 22px;
+            background: linear-gradient(180deg, rgba(0,40,15,0.55), rgba(0,12,5,0.85));
+            border: 1px solid var(--neon-dim);
+            border-radius: 8px;
+            color: inherit;
+            text-decoration: none;
+            transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+            box-shadow: 0 0 0 rgba(0,255,102,0);
+        }
+        .card:hover {
+            transform: translateY(-4px);
+            border-color: var(--neon);
+            box-shadow:
+                0 0 0 1px var(--neon),
+                0 0 22px rgba(0,255,102,0.35);
+        }
+        .card .tag {
+            font-size: 0.7rem;
+            letter-spacing: 0.35em;
+            color: var(--neon-dim);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+        .card h2 {
+            margin: 0 0 6px 0;
+            font-size: 1.5rem;
+            color: var(--neon);
+            letter-spacing: 0.05em;
+        }
+        .card p {
+            margin: 0 0 18px 0;
+            color: var(--ink);
+            opacity: 0.78;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            min-height: 3.6em;
+        }
+        .card .cta {
+            align-self: flex-end;
+            font-size: 0.85rem;
+            letter-spacing: 0.2em;
+            color: var(--neon);
+            text-transform: uppercase;
+        }
+        .card .cta::after {
+            content: ' »';
+        }
+
+        .card.module-2 {
+            border-color: var(--cyan);
+        }
+        .card.module-2 .tag,
+        .card.module-2 h2,
+        .card.module-2 .cta {
+            color: var(--cyan);
+        }
+        .card.module-2:hover {
+            border-color: var(--cyan);
+            box-shadow:
+                0 0 0 1px var(--cyan),
+                0 0 22px rgba(95,199,211,0.35);
+        }
+
+        .card.disabled {
+            opacity: 0.55;
+            pointer-events: none;
+            filter: grayscale(0.3);
+        }
+        .card.disabled .cta::after { content: ' · COMING SOON'; }
+
+        .extra-links {
+            margin-top: 28px;
+            display: flex;
+            gap: 18px;
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+        .extra-links a {
+            color: var(--pink);
+            text-decoration: none;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+        }
+        .extra-links a:hover { text-decoration: underline; }
+
+        footer {
+            position: absolute;
+            bottom: 10px;
+            left: 0; right: 0;
+            text-align: center;
+            font-size: 0.7rem;
+            letter-spacing: 0.25em;
+            color: var(--neon-dim);
+            opacity: 0.8;
+            z-index: 2;
+        }
+
+        /* Cursore lampeggiante stile terminale */
+        .cursor {
+            display: inline-block;
+            width: 0.55em;
+            height: 1em;
+            vertical-align: -0.15em;
+            background: var(--neon);
+            margin-left: 4px;
+            animation: blink 1s steps(2, start) infinite;
+        }
+        @keyframes blink { to { visibility: hidden; } }
+    </style>
+</head>
+<body>
+    <div class="grid-floor"></div>
+    <div class="grid-ceiling"></div>
+    <div class="glow"></div>
+
+    <main>
+        <p class="eyebrow">// CYBERSPACE TERMINAL</p>
+        <h1>FONDAMENTI DI COMPUTER GRAPHICS<span class="cursor"></span></h1>
+        <p class="subtitle">A.A. 2025/2026 — Seleziona un modulo per entrare nel cyberspazio.</p>
+
+        <div class="cards">
+            <a class="card module-1" href="Modulo1/Progetto/project/index.html">
+                <span class="tag">Modulo 01</span>
+                <h2>Porygon Cyberspace</h2>
+                <p>WebGL puro: assemblaggio del modello, animazioni di personalità, evoluzione in Porygon2 texturato.</p>
+                <span class="cta">Avvia</span>
+            </a>
+            <a class="card module-2 disabled" href="Modulo2/Progetto/" aria-disabled="true">
+                <span class="tag">Modulo 02</span>
+                <h2>In sviluppo</h2>
+                <p>Il progetto del secondo modulo arriverà a breve.</p>
+                <span class="cta">Standby</span>
+            </a>
+        </div>
+
+        <div class="extra-links">
+            <a href="Modulo1/Progetto/doc/index.html">Doc Modulo 1</a>
+            <a href="https://github.com/" target="_blank" rel="noopener">Repository</a>
+        </div>
+    </main>
+
+    <footer>SYSTEM READY · PRESS SELECT MODULE TO CONTINUE</footer>
+</body>
+</html>
