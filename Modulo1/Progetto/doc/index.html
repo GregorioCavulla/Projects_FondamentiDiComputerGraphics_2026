@@ -2,39 +2,542 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Relazione Progetto - Fondamenti di Computer Grafica</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modulo 1 — Porygon Cyberspace · Relazione</title>
     <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; max-width: 900px; margin: 0 auto; padding: 20px; }
-        h1, h2, h3 { color: #2c3e50; }
-        code { background: #f4f4f4; padding: 2px 5px; border-radius: 3px; }
-        .author { font-style: italic; color: #555; }
+        :root {
+            --bg-0: #000;
+            --bg-1: #061806;
+            --grid: rgba(0, 255, 80, 0.10);
+            --neon: #00ff66;
+            --neon-dim: #0a8c3a;
+            --pink: #ee8aa6;
+            --cyan: #5fc7d3;
+            --yellow: #ffe066;
+            --ink: #c9ffd6;
+            --panel: rgba(0, 18, 7, 0.78);
+        }
+        * { box-sizing: border-box; }
+        html, body { margin: 0; }
+        body {
+            font-family: 'Courier New', ui-monospace, monospace;
+            color: var(--ink);
+            background:
+                radial-gradient(ellipse at center top, rgba(0,255,102,0.08), transparent 60%),
+                linear-gradient(180deg, var(--bg-1), var(--bg-0));
+            background-attachment: fixed;
+            min-height: 100vh;
+            line-height: 1.65;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(var(--grid) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+            background-size: 48px 48px;
+            pointer-events: none;
+            z-index: 0;
+            mask-image: linear-gradient(180deg, transparent 0%, black 30%, black 70%, transparent 100%);
+        }
+        main {
+            position: relative;
+            z-index: 1;
+            max-width: 940px;
+            margin: 0 auto;
+            padding: 36px 24px 80px;
+        }
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.75rem;
+            letter-spacing: 0.3em;
+            color: var(--neon-dim);
+            text-transform: uppercase;
+            margin-bottom: 22px;
+        }
+        .topbar a { color: var(--neon-dim); text-decoration: none; }
+        .topbar a:hover { color: var(--neon); }
+        h1 {
+            color: var(--neon);
+            font-size: clamp(1.7rem, 4vw, 2.6rem);
+            margin: 0 0 4px 0;
+            letter-spacing: 0.06em;
+            text-shadow: 0 0 8px rgba(0,255,102,0.5);
+        }
+        .subtitle {
+            color: var(--ink);
+            opacity: 0.75;
+            margin: 0 0 28px 0;
+            font-size: 0.95rem;
+        }
+        h2 {
+            color: var(--neon);
+            margin: 38px 0 10px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid var(--neon-dim);
+            font-size: 1.3rem;
+            letter-spacing: 0.05em;
+        }
+        h2::before { content: '» '; color: var(--neon-dim); }
+        h3 {
+            color: var(--cyan);
+            margin: 22px 0 6px;
+            font-size: 1.05rem;
+            letter-spacing: 0.03em;
+        }
+        h3::before { content: '› '; color: var(--neon-dim); }
+        p, li { color: var(--ink); }
+        a { color: var(--cyan); }
+        a:hover { color: var(--neon); }
+        code, kbd, .file {
+            font-family: 'Courier New', monospace;
+            background: rgba(0, 60, 25, 0.4);
+            border: 1px solid rgba(0,255,102,0.25);
+            color: var(--neon);
+            padding: 1px 6px;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+        kbd {
+            background: rgba(0,0,0,0.55);
+            border-color: var(--neon-dim);
+            color: var(--yellow);
+            box-shadow: 0 1px 0 rgba(0,255,102,0.4) inset;
+            font-weight: bold;
+        }
+        .file { color: var(--cyan); border-color: rgba(95,199,211,0.35); background: rgba(0,40,60,0.3); }
+        pre {
+            background: var(--panel);
+            border: 1px solid var(--neon-dim);
+            border-left: 3px solid var(--neon);
+            padding: 14px 16px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 0.85rem;
+            color: var(--ink);
+            box-shadow: 0 0 14px rgba(0,255,102,0.08);
+        }
+        pre code { background: none; border: none; color: inherit; padding: 0; }
+        ul { padding-left: 1.2em; }
+        ul li::marker { color: var(--neon); }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        @media (max-width: 700px) { .grid-2 { grid-template-columns: 1fr; } }
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--neon-dim);
+            border-radius: 6px;
+            padding: 14px 18px;
+        }
+        .panel h3 { margin-top: 0; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 8px 0 16px;
+            font-size: 0.9rem;
+        }
+        th, td {
+            border: 1px solid var(--neon-dim);
+            padding: 8px 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            background: rgba(0, 80, 30, 0.35);
+            color: var(--neon);
+            letter-spacing: 0.05em;
+        }
+        td code { font-size: 0.85em; }
+        .pill {
+            display: inline-block;
+            padding: 1px 8px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            border: 1px solid;
+            margin-right: 4px;
+        }
+        .pill.pink   { color: var(--pink);  border-color: var(--pink); }
+        .pill.cyan   { color: var(--cyan);  border-color: var(--cyan); }
+        .pill.green  { color: var(--neon);  border-color: var(--neon); }
+        .pill.yellow { color: var(--yellow); border-color: var(--yellow); }
+        .toc {
+            background: var(--panel);
+            border: 1px dashed var(--neon-dim);
+            padding: 10px 18px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            margin-bottom: 30px;
+        }
+        .toc ol { margin: 6px 0 0; padding-left: 1.4em; }
+        .callout {
+            border-left: 3px solid var(--cyan);
+            background: rgba(0, 50, 70, 0.35);
+            padding: 10px 14px;
+            border-radius: 0 4px 4px 0;
+            margin: 14px 0;
+            font-size: 0.92rem;
+        }
+        .callout strong { color: var(--cyan); }
+        footer {
+            margin-top: 40px;
+            padding-top: 18px;
+            border-top: 1px solid var(--neon-dim);
+            text-align: center;
+            font-size: 0.75rem;
+            letter-spacing: 0.2em;
+            color: var(--neon-dim);
+        }
+        .cursor {
+            display: inline-block;
+            width: 0.55em;
+            height: 1em;
+            vertical-align: -0.15em;
+            background: var(--neon);
+            margin-left: 4px;
+            animation: blink 1s steps(2, start) infinite;
+        }
+        @keyframes blink { to { visibility: hidden; } }
     </style>
 </head>
 <body>
-    <h1>Il Cyberspazio di Porygon</h1>
-    <p class="author">Relazione per il progetto di Fondamenti di Computer Grafica</p>
-    
-    <h2>1. Descrizione dell'Applicazione</h2>
+<main>
+    <div class="topbar">
+        <a href="../../../index.html">« Hub</a>
+        <span>// FCG 2025/2026 · Modulo 1</span>
+        <a href="../project/index.html">Avvia Demo »</a>
+    </div>
+
+    <h1>Il Cyberspazio di Porygon<span class="cursor"></span></h1>
+    <p class="subtitle">Relazione del progetto di Fondamenti di Computer Grafica — Modulo 1 (WebGL 1)</p>
+
+    <div class="toc">
+        <strong>Indice</strong>
+        <ol>
+            <li><a href="#descrizione">Descrizione dell'applicazione</a></li>
+            <li><a href="#requisiti">Mappatura dei requisiti del corso</a></li>
+            <li><a href="#architettura">Architettura del codice</a></li>
+            <li><a href="#statemachine">Macchina a stati e flusso</a></li>
+            <li><a href="#geometria">Geometria: Porygon1 costruito a mano</a></li>
+            <li><a href="#shader">Pipeline di rendering e shader</a></li>
+            <li><a href="#assemblaggio">Animazione di assemblaggio e cilindro di beam</a></li>
+            <li><a href="#personalita">Animazioni di personalità (atk1 / atk2)</a></li>
+            <li><a href="#evoluzione">Evoluzione e caricamento di Porygon2 (OBJ)</a></li>
+            <li><a href="#ui">Interfaccia utente e controlli</a></li>
+            <li><a href="#librerie">Librerie utilizzate</a></li>
+            <li><a href="#esecuzione">Come eseguire</a></li>
+        </ol>
+    </div>
+
+    <h2 id="descrizione">1. Descrizione dell'applicazione</h2>
     <p>
-        L'applicazione simula una stanza nel cyberspazio in cui risiede il noto Pokémon virtuale Porygon. 
-        L'obiettivo del progetto è dimostrare le competenze acquisite nel corso combinando modelli generati gerarchicamente 
-        con forme primitive, caricamento di modelli complessi (file `.obj`) e algoritmi di shading variabili (Gouraud/Phong).
+        Il progetto realizza una <strong>scena interattiva in WebGL 1</strong> ispirata all'estetica del cyberspazio di
+        <em>Pokémon</em>: una stanza-griglia stile <em>TRON</em> in cui prende vita Porygon. L'utente assiste
+        all'assemblaggio del modello a partire dai suoi pezzi sparsi sul pavimento, può cambiare modalità di
+        visualizzazione, far eseguire al Pokémon due animazioni di "personalità", e infine evolverlo in
+        <strong>Porygon2</strong>, modello complesso caricato da file <span class="file">.obj</span> con texture.
+    </p>
+    <p>
+        L'enfasi del progetto è sulla <strong>costruzione gerarchica e procedurale</strong> di un modello 3D a partire
+        da poliedri primitivi, sull'<strong>animazione articolata</strong> a partire da pivot calcolati
+        automaticamente, e sull'<strong>integrazione di una pipeline di shader multipli</strong> (mesh, solid, texture)
+        coordinati da una macchina a stati.
     </p>
 
-    <h2>2. Funzionalità Previste</h2>
+    <h2 id="requisiti">2. Mappatura dei requisiti del corso</h2>
+    <table>
+        <thead>
+            <tr><th>Requisito</th><th>Implementazione nel progetto</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Costruzione di un modello da primitive</td>
+                <td>Porygon1 è composto da <strong>6 mesh poliedriche</strong> (corpo, testa, occhi, due piedi, coda) con vertici e facce hardcoded; ogni mesh produce buffer di posizioni, normali flat per-face, e <em>edge list</em> univoche per il wireframe.</td>
+            </tr>
+            <tr>
+                <td>Caricamento di modelli esterni</td>
+                <td>Porygon2 caricato da <span class="file">assets/Porygon2/Porygon2.obj</span> + texture, tramite <span class="file">mesh_utils.js</span>.</td>
+            </tr>
+            <tr>
+                <td>Animazione</td>
+                <td>Assemblaggio dei pezzi dal pavimento, due animazioni articolate (saltello e posa d'attacco), spin di evoluzione, floating idle, cilindro di beam animato.</td>
+            </tr>
+            <tr>
+                <td>Trasformazioni gerarchiche (m4.js)</td>
+                <td>Ogni parte ha <code>startMatrix</code> / <code>targetMatrix</code>; le rotazioni di personalità usano pivot articolari calcolati dalla bbox del gruppo: <code>T(p)·R·T(-p)</code>.</td>
+            </tr>
+            <tr>
+                <td>Illuminazione</td>
+                <td>Modello <em>flat per-face</em> con illuminazione lambertiana semplificata (<code>abs(dot(n, L))*0.7 + 0.3</code>); luce direzionale impostata in JS.</td>
+            </tr>
+            <tr>
+                <td>Texturing</td>
+                <td>Texture procedurale per gli occhi (canvas 2D → bianco con pallino nero), texture caricata da file per Porygon2, alpha-discard nel fragment shader.</td>
+            </tr>
+            <tr>
+                <td>Modalità di visualizzazione multiple</td>
+                <td><span class="pill green">MESH</span> wireframe verde, <span class="pill pink">SOLID</span> a colori, <span class="pill cyan">TEXTURE</span> per Porygon2.</td>
+            </tr>
+            <tr>
+                <td>Telecamera interattiva</td>
+                <td>Drag del mouse con inerzia (lerp), frecce + <kbd>Space</kbd>/<kbd>Shift</kbd> per traslare; nessuna libreria di trackball esterna.</td>
+            </tr>
+            <tr>
+                <td>GUI di controllo</td>
+                <td>Bottoni HUD nello stile della scena + pannello <span class="file">dat.GUI</span> per reset camera e attivazione delle due animazioni.</td>
+            </tr>
+            <tr>
+                <td>Identificabilità dello studente</td>
+                <td>Badge in alto a destra con foto (<span class="file">foto_studente.jpg</span> con fallback SVG) e dati identificativi.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2 id="architettura">3. Architettura del codice</h2>
+    <pre><code>Modulo1/Progetto/project/
+├── index.html         · markup + shader inline + HUD
+├── main.js            · runtime (state machine, geometria, render loop)
+├── porygon_data.js    · placeholder dati di riferimento
+├── primitives.js      · helper per primitive (residuo iterazioni)
+├── assets/Porygon2/   · Porygon2.obj + Porygon2.mtl + texture
+└── lib/               · m4.js, mesh_utils.js, webgl-utils.js, dat.gui.js</code></pre>
+
+    <div class="grid-2">
+        <div class="panel">
+            <h3>main.js — sezioni</h3>
+            <ul>
+                <li><strong>Stato globale</strong>: enum <code>STATE</code>, <code>VIEW</code>, variabili camera, animazione corrente.</li>
+                <li><strong>Geometria hardcoded</strong>: <code>P1_BODY_VERTS/FACES</code>, <code>P1_HEAD_*</code>, <code>P1_EYES_*</code>, <code>P1_FOOT_R/L_*</code>, <code>P1_TAIL_*</code>.</li>
+                <li><strong>Helper mesh</strong>: <code>buildPolyhedron</code> (flat normals + edge list per wireframe).</li>
+                <li><strong>Init Porygon1</strong>: split colore per faccia, calcolo pivot per gruppo, generazione renderables.</li>
+                <li><strong>Cilindro beam</strong>: <code>createAssemblyBeam</code> / <code>drawAssemblyBeam</code>.</li>
+                <li><strong>Animazioni personalità</strong>: <code>triggerAnim</code>, <code>computeAnimLocalMatrix</code>, <code>computeAnimWorldExtras</code>.</li>
+                <li><strong>Render loop</strong>: <code>render</code>, <code>renderModel</code>, gestione transizioni di stato.</li>
+                <li><strong>UI</strong>: <code>setupHUD</code>, <code>setupGUI</code>, label overlay facce.</li>
+            </ul>
+        </div>
+        <div class="panel">
+            <h3>Programmi GLSL</h3>
+            <ul>
+                <li><code>gridProgram</code> — disegno linee colorate uniformi (griglia, beam).</li>
+                <li><code>colorProgram</code> — geometria solida con luce direzionale e colore uniform.</li>
+                <li><code>program</code> — geometria con texture 2D + alpha discard (Porygon2 e occhi).</li>
+            </ul>
+            <p>Il programma attivo è scelto in <code>renderModel</code> in funzione di <code>viewMode</code> e della presenza di una texture sul renderable.</p>
+        </div>
+    </div>
+
+    <h2 id="statemachine">4. Macchina a stati e flusso</h2>
+    <p>La scena è governata da un'enum <code>STATE</code> con 6 stati e un'enum <code>VIEW</code> con 3 modalità, entrambe <code>Object.freeze</code>:</p>
+    <pre><code>STATE: INIT → ASSEMBLING → PORYGON1 → EVOLVE_P1 → EVOLVE_P2 → PORYGON2
+VIEW : MESH (default) · SOLID · TEXTURE</code></pre>
     <ul>
-        <li><strong>Costruzione Gerarchica:</strong> Porygon è costruito partendo da primitive grafiche di base, posizionate in una struttura ad albero con <code>m4.js</code>.</li>
-        <li><strong>Importazione Modelli:</strong> Possibilità di far evolvere Porygon in "Porygon2", caricando dinamicamente un file <code>.obj</code> usando <code>mesh_utils.js</code>.</li>
-        <li><strong>Modelli di Illuminazione:</strong> Scelta tra rendering Flat, Gouraud e Phong tramite interfaccia (utilizzando <code>dat.gui.js</code>).</li>
-        <li><strong>Texturing & Effetti:</strong> Verranno incluse cubemap per l'ambiente (cyberspazio), Bump mapping su piattaforme specifiche e Alpha blending per simulare attacchi speciali con barriere traslucide.</li>
-        <li><strong>Requisito Foto:</strong> La fototessera dello studente è mappata dinamicamente come texture sui terminali dell'ambiente, oltre ad essere presente a schermo in formato 2D sovrapposto per garantire l'identificabilità dell'autore come richiesto dalle linee guida.</li>
+        <li><strong>INIT</strong>: i pezzi di Porygon1 sono appoggiati sul pavimento in posizioni deterministiche; il drag del mouse è disabilitato; viewMode iniziale = <span class="pill green">MESH</span>.</li>
+        <li><strong>ASSEMBLING</strong>: avviato da <kbd>STARTUP</kbd>. Per <code>ASSEMBLE_DURATION = 3000ms</code> i pezzi vengono interpolati (<em>ease-out cubic</em>) dalla loro <code>startMatrix</code> (traslazione pura) alla <code>targetMatrix = identity</code>. In contemporanea si accende il cilindro di beam attorno al modello.</li>
+        <li><strong>PORYGON1</strong>: stato a regime, il modello fluttua (<code>sin(now·0.003)·0.1</code>), accetta drag del mouse e si possono lanciare le animazioni di personalità o l'evoluzione.</li>
+        <li><strong>EVOLVE_P1 / EVOLVE_P2</strong>: due fasi di spin attorno all'asse Y (3 giri in 1500ms, poi 2 giri in 1000ms), durante le quali avviene il cambio del modello visualizzato.</li>
+        <li><strong>PORYGON2</strong>: viewMode passa automaticamente a <span class="pill cyan">TEXTURE</span> e viene mostrato il modello caricato da OBJ.</li>
     </ul>
 
-    <h2>3. Scelte Implementative</h2>
+    <h2 id="geometria">5. Geometria: Porygon1 costruito a mano</h2>
+    <p>Ogni mesh è definita come due array:</p>
+    <ul>
+        <li><strong>Vertici</strong>: array di triple <code>[x, y, z]</code> nello spazio modello (già nelle posizioni finali rispetto al centro).</li>
+        <li><strong>Facce</strong>: array di triple di indici <code>[i, j, k]</code>.</li>
+    </ul>
+    <p>La funzione <code>buildPolyhedron(verts, faces, vertUVs?)</code> genera:</p>
+    <ul>
+        <li><strong>Posizioni</strong>: 3 vertici per faccia (vertici duplicati) per supportare lo shading flat.</li>
+        <li><strong>Normali</strong>: una normale per faccia calcolata via prodotto vettoriale, replicata sui 3 vertici.</li>
+        <li><strong>UV</strong> (opzionali): usate solo per gli occhi, dove vengono calcolate con una proiezione planare YZ per cluster (<code>computeEyeUVs</code>) con un padding tale da centrare la "pupilla" all'UV <code>(0.5, 0.5)</code>.</li>
+        <li><strong>Line buffer</strong>: insieme di <strong>edge univoci</strong> per il wireframe; gli edge sono normalizzati come <code>min,max</code> per evitare duplicati.</li>
+    </ul>
+
+    <h3>Colorazione per faccia (split &amp; override)</h3>
     <p>
-        Il progetto fa rigorosamente uso solo delle 5 librerie autorizzate (<code>glm_utils.js</code>, <code>mesh_utils.js</code>, <code>webgl-utils.js</code>, <code>m4.js</code>, <code>dat.gui.js</code>). 
-        La telecamera (ruotabile attorno alla scena) sarà controllata tramite interazioni con i listener del mouse registrati direttamente sul canvas WebGL, senza l'uso di librerie terze vietate come <code>trackball-rotator.js</code>.
+        Per ottenere il look canonico di Porygon (corpo rosa, petto/becco/coda/piedi ciano, occhi bianchi con pupilla
+        nera), le mesh del corpo e della testa vengono divise <strong>al volo</strong> in due gruppi di facce con
+        <code>splitFacesByPredicate</code>:
+    </p>
+    <pre><code>headSplit = split(P1_HEAD_FACES, (cx,cy,cz) =&gt; cz &gt;= 0.65); // becco
+bodySplit = split(P1_BODY_FACES, (cx,cy,cz) =&gt; cz &gt;= 0.20 &amp;&amp; cy &lt;= -0.05); // petto</code></pre>
+    <p>
+        Dove l'euristica sbaglia (alcune facce di confine), si applicano correzioni manuali per indice tramite
+        <code>forceFacesToBack(split, faces, [3, 4, 37, 44])</code>. Per individuare gli indici delle facce
+        è disponibile in runtime l'overlay attivabile con il tasto <kbd>N</kbd>: ogni faccia mostra un'etichetta
+        (<code>B12</code>, <code>H7</code>, …) proiettata sullo schermo.
     </p>
 
+    <h3>Pivot articolari</h3>
+    <p>
+        Per ogni gruppo (<code>head</code>, <code>tail</code>, <code>footR</code>, <code>footL</code>) viene calcolato
+        in fase di init un <strong>pivot articolare</strong> a partire dalla bounding box dei vertici del gruppo:
+    </p>
+    <ul>
+        <li><code>head</code> → centro X/Z, <code>minY</code> (attacco al corpo)</li>
+        <li><code>tail</code> → centro X/Y, <code>maxZ</code> (attacco posteriore)</li>
+        <li><code>footR / footL</code> → centro X/Z, <code>maxY</code> (hip joint)</li>
+    </ul>
+    <p>I pivot sono poi usati come centro di rotazione nelle animazioni di personalità.</p>
+
+    <h2 id="shader">6. Pipeline di rendering e shader</h2>
+    <p>Tre programmi GLSL convivono nello stesso file <span class="file">index.html</span> come <code>&lt;script type="x-shader/*"&gt;</code> e sono compilati con <span class="file">webgl-utils.js</span>.</p>
+
+    <h3>colorProgram (solido con luce)</h3>
+    <pre><code>// fragment
+float light = abs(dot(normal, u_reverseLightDirection));
+gl_FragColor = u_color;
+gl_FragColor.rgb *= (light * 0.7 + 0.3);</code></pre>
+    <p>L'uso di <code>abs(dot(...))</code> illumina anche le facce rivolte "controluce" — utile dato che il <code>CULL_FACE</code> è disabilitato per vedere il retro durante assemblaggio/evoluzione.</p>
+
+    <h3>program (texture + alpha discard)</h3>
+    <pre><code>vec4 texColor = texture2D(u_texture, v_texcoord);
+if (texColor.a &lt; 0.1) discard;
+gl_FragColor = texColor;
+gl_FragColor.rgb *= (light * 0.7 + 0.3);</code></pre>
+
+    <h3>gridProgram</h3>
+    <p>Vertex shader pass-through e fragment a colore uniforme: serve sia per la griglia della stanza che per il cilindro di beam (linee e anelli).</p>
+
+    <div class="callout">
+        <strong>Depth test:</strong> impostato a <code>gl.LEQUAL</code> globalmente, così le facce successive complanari (gli occhi sopra la testa) vincono lo z-fighting essendo disegnate dopo.
+    </div>
+
+    <h2 id="assemblaggio">7. Animazione di assemblaggio e cilindro di beam</h2>
+    <p>
+        Al click di <kbd>STARTUP</kbd> tutti i pezzi del Porygon1 sono posizionati sul pavimento in punti
+        deterministici (vedi <code>groupLayoutXZ</code>). La loro <code>startMatrix</code> è una <strong>pura
+        traslazione</strong> verso <code>(x, FLOOR_Y − minY, z)</code>: questo è cruciale perché l'interpolazione
+        verso l'identità è element-wise sui 16 valori della matrice, e con sola traslazione resta una traslazione
+        lineare (niente shear o scaling spurio durante il volo).
+    </p>
+    <p>
+        Le parti che appartengono allo stesso <em>gruppo</em> (es. testa + becco + occhi) condividono la stessa
+        <code>startMatrix</code>, così da volare verso il loro target come <strong>un unico blocco</strong> rigido.
+    </p>
+
+    <h3>Cilindro di beam</h3>
+    <p>
+        Per coreografare l'assemblaggio si accende un cilindro di raggi bianchi attorno al modello, costruito con
+        <code>gridProgram</code>:
+    </p>
+    <ul>
+        <li><strong>96 raggi verticali</strong> sulla circonferenza unitaria, scalati in X/Z dal raggio corrente.</li>
+        <li>Il raggio cresce da <code>0</code> a <code>BEAM_MAX_RADIUS = 1.2</code> con <em>ease-out</em> nei primi 55% della durata, poi resta costante.</li>
+        <li><strong>6 anelli orizzontali</strong> che scorrono lungo l'asse Y in loop su un periodo di 1800ms; il loro alpha sfuma agli estremi per non spezzare la continuità visiva.</li>
+        <li>Tutto il cilindro pulsa leggermente in intensità sincronizzato con <code>now</code>.</li>
+    </ul>
+
+    <h2 id="personalita">8. Animazioni di personalità (atk1 / atk2)</h2>
+    <p>
+        Una volta assemblato, Porygon1 può eseguire due animazioni articolate attivabili da <kbd>1</kbd> / <kbd>2</kbd>
+        o dai bottoni del pannello dat.GUI. La struttura è la stessa:
+    </p>
+    <pre><code>currentAnim = { kind, startTime, duration };
+t    = (now - startTime) / duration;
+bell = sin(π · t);   // 0 → 1 → 0 (campana)</code></pre>
+    <p>
+        A ogni frame, per ogni gruppo articolato si costruisce una matrice di rotazione locale attorno al pivot:
+        <code>M = T(p) · R<sub>x</sub>(a<sub>x</sub>) · R<sub>y</sub>(a<sub>y</sub>) · R<sub>z</sub>(a<sub>z</sub>) · T(-p)</code>.
+        Questa matrice sostituisce la <code>targetMatrix</code> della parte. Trasformazioni "globali" del modello
+        (saltello, leggera inclinazione) vengono invece applicate al <code>pokeWorldMatrix</code>.
+    </p>
+
+    <table>
+        <thead><tr><th>Gruppo</th><th>Anim 1 — Saltello</th><th>Anim 2 — Posa d'attacco</th></tr></thead>
+        <tbody>
+            <tr><td>Whole body</td><td>Traslazione Y · <code>+0.55 · bell</code></td><td>Pitch X · <code>+0.20 · bell</code> (lean avanti)</td></tr>
+            <tr><td>head</td><td>Pitch X · <code>−0.55 · bell</code> (su)</td><td>Pitch X · <code>+0.45 · bell</code> (giù)</td></tr>
+            <tr><td>tail</td><td>Pitch X · <code>+0.70 · bell</code></td><td>Pitch X · <code>−0.55 · bell</code></td></tr>
+            <tr><td>footR / footL</td><td>Rot. X · <code>2π · 3 · t</code> (3 giri completi)</td><td>Yaw Y · <code>∓0.55 · bell</code> (V dall'alto)</td></tr>
+            <tr><td>Durata</td><td>1200 ms</td><td>1500 ms</td></tr>
+        </tbody>
+    </table>
+    <p>
+        Il cleanup di <code>currentAnim</code> avviene una sola volta per frame nel <code>render</code> (non dentro la
+        funzione per-gruppo, per evitare che la prima invocazione azzeri lo stato bloccando le successive).
+    </p>
+
+    <h2 id="evoluzione">9. Evoluzione e caricamento di Porygon2 (OBJ)</h2>
+    <p>
+        Al click di <kbd>EVOLUZIONE!</kbd>, lo stato passa a <code>EVOLVE_P1</code>: il <code>pokeWorldMatrix</code>
+        viene moltiplicato per uno <code>yRotate</code> proporzionale al tempo per ottenere 3 giri in 1.5s. Subito
+        dopo si entra in <code>EVOLVE_P2</code> dove la stessa logica vale per Porygon2 (2 giri in 1s). Al termine
+        il viewMode diventa <span class="pill cyan">TEXTURE</span>.
+    </p>
+    <p>
+        Porygon2 è caricato con <span class="file">mesh_utils.js</span> a partire da
+        <span class="file">assets/Porygon2/Porygon2.obj</span> e dal relativo <span class="file">.mtl</span> con
+        texture. La funzione <code>loadModel</code> popola <code>renderablesPorygon2</code> con buffer di posizioni,
+        normali, texcoords e <code>numVertices</code> per ogni gruppo, pronti per essere passati a
+        <code>renderModel</code> con il programma texture.
+    </p>
+
+    <h2 id="ui">10. Interfaccia utente e controlli</h2>
+    <div class="grid-2">
+        <div class="panel">
+            <h3>HUD (in scena)</h3>
+            <ul>
+                <li><kbd>STARTUP</kbd> — avvia l'assemblaggio</li>
+                <li><kbd>MESH VIEW</kbd> — modalità wireframe verde</li>
+                <li><kbd>SOLID VIEW</kbd> — modalità solida colorata</li>
+                <li><kbd>EVOLUZIONE!</kbd> — innesca evoluzione → Porygon2, poi commuta in TEXTURE VIEW</li>
+                <li>Dialog box in stile Game Boy con messaggi contestuali</li>
+            </ul>
+        </div>
+        <div class="panel">
+            <h3>Tastiera</h3>
+            <ul>
+                <li><kbd>1</kbd> · Anim 1 — Saltello</li>
+                <li><kbd>2</kbd> · Anim 2 — Posa d'attacco</li>
+                <li><kbd>N</kbd> · Toggle overlay numerazione facce</li>
+                <li><kbd>← → ↑ ↓</kbd> · Traslazione camera in XZ</li>
+                <li><kbd>Space</kbd> / <kbd>Shift</kbd> · Camera su / giù</li>
+                <li>Mouse drag · Rotazione orbitale (con inerzia)</li>
+            </ul>
+        </div>
+    </div>
+    <p>
+        Il pannello <span class="file">dat.GUI</span> in alto a destra espone Reset camera e le due animazioni di
+        personalità come bottoni di backup ai tasti.
+    </p>
+
+    <h2 id="librerie">11. Librerie utilizzate</h2>
+    <p>Il progetto utilizza solo librerie consentite dal corso, tutte locali in <span class="file">project/lib/</span>:</p>
+    <ul>
+        <li><span class="file">m4.js</span> — algebra matrici 4×4 column-major (translation, perspective, lookAt, xRotate, …)</li>
+        <li><span class="file">mesh_utils.js</span> — parsing di file OBJ/MTL e generazione buffer</li>
+        <li><span class="file">webgl-utils.js</span> — compilazione e linking dei programmi GLSL inline</li>
+        <li><span class="file">dat.gui.js</span> — pannello di controllo runtime</li>
+    </ul>
+    <p>
+        La telecamera è gestita interamente con eventi nativi del canvas, senza ricorrere a librerie esterne di
+        trackball.
+    </p>
+
+    <h2 id="esecuzione">12. Come eseguire</h2>
+    <p>
+        WebGL ha bisogno di essere servito via HTTP per caricare assets, texture e file <span class="file">.obj</span>.
+        Dalla cartella <span class="file">Modulo1/Progetto/project/</span>:
+    </p>
+    <pre><code>python3 -m http.server 8080
+# poi apri http://localhost:8080/index.html</code></pre>
+    <p>
+        In alternativa il progetto è accessibile attraverso la
+        <a href="../../../index.html">hub page del repository</a> o, se hostato su GitHub Pages,
+        all'URL pubblico del repo.
+    </p>
+
+    <footer>
+        FONDAMENTI DI COMPUTER GRAFICA · 2025/2026 · MODULO 1
+    </footer>
+</main>
 </body>
 </html>
