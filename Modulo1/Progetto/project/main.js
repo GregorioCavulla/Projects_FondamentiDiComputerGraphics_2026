@@ -54,6 +54,14 @@ let faceLabelContainer = null;
 // nel testo (es. "B12", "H7") così da poterli citare senza ambiguità.
 let faceLabelGroups = []; // [{ centroids, els, prefix }]
 
+// --- Animazioni "di personalità" del Porygon1 ----------------------------
+// Punto di articolazione per ogni gruppo (calcolato a init dai vertici);
+// usato come pivot per rotazioni locali (testa che tilta, coda che si
+// alza, gambe che girano / si aprono).
+let groupPivots = {};
+// Animazione corrente: { kind: 'atk1'|'atk2', startTime, duration }.
+let currentAnim = null;
+
 function resizeCanvas() {
     const canvas = gl.canvas;
     const w = window.innerWidth;
@@ -120,6 +128,14 @@ async function main() {
         // o dopo l'evoluzione: la condizione di disegno effettiva è nel render.
         if (!wasDown && e.code === 'KeyN') {
             toggleFaceLabels();
+        }
+        // Tasti 1/2: lanciano le due animazioni di personalità (solo a
+        // Porygon assemblato e fermo, niente overlap tra attacchi).
+        if (!wasDown && (e.code === 'Digit1' || e.code === 'Numpad1')) {
+            triggerAnim('atk1');
+        }
+        if (!wasDown && (e.code === 'Digit2' || e.code === 'Numpad2')) {
+            triggerAnim('atk2');
         }
     });
     window.addEventListener('keyup', (e) => { keys[e.code] = false; });
@@ -552,6 +568,7 @@ function initPorygon1Animation() {
         const start = startMatrixFor(p.group);
 
         renderablesPorygon1.push({
+            group:           p.group,
             positionBuffer:  mesh.positionBuffer,
             normalBuffer:    mesh.normalBuffer,
             lineBuffer:      mesh.lineBuffer,
@@ -564,6 +581,101 @@ function initPorygon1Animation() {
             texture: p.texture || null,
         });
     });
+
+    // Calcola un pivot per ogni gruppo, basato sulla bounding box dei suoi
+    // vertici. Sono i punti di articolazione attorno ai quali si fanno
+    // ruotare testa / coda / gambe nelle animazioni.
+    function bboxOf(name) {
+        let mn = [ Infinity,  Infinity,  Infinity];
+        let mx = [-Infinity, -Infinity, -Infinity];
+        for (const p of parts) {
+            if (p.group !== name || !p.faces || p.faces.length === 0) continue;
+            for (const v of p.verts) {
+                for (let i = 0; i < 3; i++) {
+                    if (v[i] < mn[i]) mn[i] = v[i];
+                    if (v[i] > mx[i]) mx[i] = v[i];
+                }
+            }
+        }
+        return { mn, mx };
+    }
+    const headBB = bboxOf('head');
+    const tailBB = bboxOf('tail');
+    const fRBB   = bboxOf('footR');
+    const fLBB   = bboxOf('footL');
+    groupPivots = {
+        // base testa: centro in X/Z, Y più bassa (attacco col corpo).
+        head:  [ (headBB.mn[0]+headBB.mx[0])*0.5, headBB.mn[1], (headBB.mn[2]+headBB.mx[2])*0.5 ],
+        // attacco coda al corpo: estremo verso il corpo. Le coordinate del
+        // tail si estendono dietro al modello, quindi il punto di giuntura
+        // è il vertice con Z massima (più vicino al corpo).
+        tail:  [ (tailBB.mn[0]+tailBB.mx[0])*0.5, (tailBB.mn[1]+tailBB.mx[1])*0.5, tailBB.mx[2] ],
+        // hip joint: parte alta delle gambe (Y massima).
+        footR: [ (fRBB.mn[0]+fRBB.mx[0])*0.5, fRBB.mx[1], (fRBB.mn[2]+fRBB.mx[2])*0.5 ],
+        footL: [ (fLBB.mn[0]+fLBB.mx[0])*0.5, fLBB.mx[1], (fLBB.mn[2]+fLBB.mx[2])*0.5 ],
+        body:  [0, 0, 0],
+    };
+}
+
+// Lancia un'animazione di personalità: ammessa solo a Porygon1 assemblato
+// e quando non ce n'è già una in corso (evita giunzioni brusche).
+function triggerAnim(kind) {
+    if (gameState !== STATE.PORYGON1) return;
+    if (currentAnim) return;
+    const duration = (kind === 'atk1') ? 1200 : 1500;
+    currentAnim = { kind, startTime: performance.now(), duration };
+    if (kind === 'atk1') updateDialog("Porygon usa SALTELLO! La testa si alza, le zampe scattano!");
+    if (kind === 'atk2') updateDialog("Porygon assume la posa da attacco: zampe larghe e muso basso!");
+}
+
+// Costruisce la matrice di rotazione locale (in object space del gruppo)
+// che realizza l'animazione corrente sul gruppo dato. Ritorna null se non
+// c'è animazione attiva o il gruppo non è coinvolto.
+function computeAnimLocalMatrix(group) {
+    if (!currentAnim) return null;
+    const t = Math.min(1, (performance.now() - currentAnim.startTime) / currentAnim.duration);
+    const bell = Math.sin(Math.PI * t); // 0 -> 1 -> 0
+    const pivot = groupPivots[group];
+    if (!pivot) return null;
+
+    let ax = 0, ay = 0, az = 0;
+    if (currentAnim.kind === 'atk1') {
+        // SALTELLO: testa su, coda su, gambe che ruotano (asse X = orizz.).
+        if (group === 'head')  ax = -0.55 * bell;
+        if (group === 'tail')  ax = -0.70 * bell;
+        if (group === 'footR' || group === 'footL') ax = 2 * Math.PI * 3 * t; // 3 giri
+    } else if (currentAnim.kind === 'atk2') {
+        // POSA D'ATTACCO: testa giù, coda giù, gambe a V (asse Z).
+        if (group === 'head')  ax = 0.45 * bell;
+        if (group === 'tail')  ax = 0.55 * bell;
+        // "Spazzaneve al contrario": zampe aperte verso l'esterno.
+        if (group === 'footR') az = -0.55 * bell; // ruota verso +X (destra esterno)
+        if (group === 'footL') az =  0.55 * bell; // ruota verso -X (sinistra esterno)
+    }
+
+    if (ax === 0 && ay === 0 && az === 0) return null;
+    // M = T(p) * Rx * Ry * Rz * T(-p)
+    let m = m4.translation(pivot[0], pivot[1], pivot[2]);
+    if (ax !== 0) m = m4.xRotate(m, ax);
+    if (ay !== 0) m = m4.yRotate(m, ay);
+    if (az !== 0) m = m4.zRotate(m, az);
+    m = m4.translate(m, -pivot[0], -pivot[1], -pivot[2]);
+    return m;
+}
+
+// Trasformazioni applicate all'intero modello (bounce, leggera inclinazione)
+// durante l'animazione corrente. Ritorna { translateY, pitchX }.
+function computeAnimWorldExtras() {
+    if (!currentAnim) return { translateY: 0, pitchX: 0 };
+    const t = Math.min(1, (performance.now() - currentAnim.startTime) / currentAnim.duration);
+    const bell = Math.sin(Math.PI * t);
+    if (currentAnim.kind === 'atk1') {
+        return { translateY: 0.55 * bell, pitchX: 0 };
+    }
+    if (currentAnim.kind === 'atk2') {
+        return { translateY: 0, pitchX: 0.20 * bell };
+    }
+    return { translateY: 0, pitchX: 0 };
 }
 
 
@@ -869,12 +981,19 @@ function renderModel(renderablesArray, now, projectionMatrix, viewMatrix, pokeWo
 
         // Trasformazione locale del pezzo: in assemblaggio interpola start->target,
         // a animazione finita applica direttamente targetMatrix (se presente).
+        // Se c'è un'animazione di personalità attiva e il pezzo appartiene
+        // a un gruppo coinvolto, la sua matrice di rotazione locale (pivot)
+        // sostituisce la targetMatrix=identità.
         let localMatrix = null;
         if (r.targetMatrix && r.startMatrix && isAssembling) {
             localMatrix = new Float32Array(16);
             for (let i = 0; i < 16; i++) {
                 localMatrix[i] = r.startMatrix[i] * (1 - tAssemble) + r.targetMatrix[i] * tAssemble;
             }
+        } else if (!isAssembling && r.group) {
+            const anim = computeAnimLocalMatrix(r.group);
+            if (anim) localMatrix = anim;
+            else if (r.targetMatrix) localMatrix = r.targetMatrix;
         } else if (r.targetMatrix) {
             localMatrix = r.targetMatrix;
         }
@@ -973,6 +1092,27 @@ function render(now) {
     pokeWorldMatrix = m4.xRotate(pokeWorldMatrix, rotationY);
     pokeWorldMatrix = m4.yRotate(pokeWorldMatrix, rotationX);
 
+    // Cleanup animazione di personalità a fine durata. Va fatto una sola
+    // volta per frame, prima di calcolare extras o matrici locali, così da
+    // permettere subito un nuovo trigger.
+    if (currentAnim) {
+        const tAnim = (performance.now() - currentAnim.startTime) / currentAnim.duration;
+        if (tAnim >= 1) currentAnim = null;
+    }
+
+    // Trasformazioni "globali" dell'animazione di personalità (saltello,
+    // leggera inclinazione in avanti). Si applicano prima delle rotazioni
+    // locali per gruppo, così l'intero modello segue il movimento.
+    if (gameState === STATE.PORYGON1 && currentAnim) {
+        const extras = computeAnimWorldExtras();
+        if (extras.translateY !== 0) {
+            pokeWorldMatrix = m4.translate(pokeWorldMatrix, 0, extras.translateY, 0);
+        }
+        if (extras.pitchX !== 0) {
+            pokeWorldMatrix = m4.xRotate(pokeWorldMatrix, extras.pitchX);
+        }
+    }
+
     // Gestione transizione evoluzione Porygon1 -> Porygon2
     let drawPorygon1 = (gameState === STATE.INIT || gameState === STATE.PORYGON1 || gameState === STATE.ASSEMBLING);
     let drawPorygon2 = (gameState === STATE.PORYGON2);
@@ -1066,6 +1206,12 @@ function render(now) {
 
 function setupGUI() {
     const gui = new dat.GUI();
-    const actions = { reset: () => { targetRotationX = 0; targetRotationY = 0; rotationX = 0; rotationY = 0; cameraPos=[0,0,4.5]; } };
+    const actions = {
+        reset: () => { targetRotationX = 0; targetRotationY = 0; rotationX = 0; rotationY = 0; cameraPos=[0,0,4.5]; },
+        atk1: () => triggerAnim('atk1'),
+        atk2: () => triggerAnim('atk2'),
+    };
     gui.add(actions, 'reset').name('Riavvia e Centra');
+    gui.add(actions, 'atk1').name('Anim 1: Saltello [1]');
+    gui.add(actions, 'atk2').name('Anim 2: Posa attacco [2]');
 }
