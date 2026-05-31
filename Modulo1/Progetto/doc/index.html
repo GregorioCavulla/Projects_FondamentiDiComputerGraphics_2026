@@ -287,11 +287,11 @@
             </tr>
             <tr>
                 <td>Telecamera interattiva</td>
-                <td>Drag del mouse con inerzia (lerp), frecce + <kbd>Space</kbd>/<kbd>Shift</kbd> per traslare; nessuna libreria di trackball esterna.</td>
+                <td>Drag del mouse con inerzia (lerp), frecce + <kbd>Space</kbd>/<kbd>Shift</kbd> per traslare con <em>velocity + damping</em> (accel/decel morbide); nessuna libreria di trackball esterna.</td>
             </tr>
             <tr>
                 <td>GUI di controllo</td>
-                <td>Bottoni HUD nello stile della scena + pannello <span class="file">dat.GUI</span> per reset camera e attivazione delle due animazioni.</td>
+                <td>HUD a stati (stack verticale di mini-pannelli FLUSSO / VISTA / ANIMAZIONI / SCENA, visibili solo quando rilevanti) + pannello <span class="file">dat.GUI</span> per reset camera e animazioni.</td>
             </tr>
             <tr>
                 <td>Identificabilità dello studente</td>
@@ -481,14 +481,21 @@ bell = sin(π · t);   // 0 → 1 → 0 (campana)</code></pre>
     </p>
 
     <h2 id="ui">10. Interfaccia utente e controlli</h2>
+    <p>
+        L'HUD è una <strong>stack verticale di mini-pannelli a stati</strong>: ogni pannello compare/scompare
+        in funzione della macchina a stati corrente, così l'utente vede solo i bottoni significativi nel
+        contesto attuale (es. <em>EVOLUZIONE</em> non è presente prima dell'assemblaggio, <em>TEXTURE</em>
+        compare solo su Porygon2). La modalità di vista e di sfondo correnti sono evidenziate in giallo
+        (<code>.is-active</code>).
+    </p>
     <div class="grid-2">
         <div class="panel">
-            <h3>HUD (in scena)</h3>
+            <h3>HUD (sezioni)</h3>
             <ul>
-                <li><kbd>STARTUP</kbd> — avvia l'assemblaggio</li>
-                <li><kbd>MESH VIEW</kbd> — modalità wireframe verde</li>
-                <li><kbd>SOLID VIEW</kbd> — modalità solida colorata</li>
-                <li><kbd>EVOLUZIONE!</kbd> — innesca evoluzione → Porygon2, poi commuta in TEXTURE VIEW</li>
+                <li><strong>FLUSSO</strong>: <kbd>▶ STARTUP</kbd> (avvia assemblaggio) e <kbd>★ EVOLUZIONE</kbd> (PORYGON1 → PORYGON2)</li>
+                <li><strong>VISTA</strong>: <kbd>MESH</kbd> wireframe, <kbd>SOLID</kbd> colorato, <kbd>TEXTURE</kbd> (solo PORYGON2)</li>
+                <li><strong>ANIMAZIONI</strong>: <kbd>1 · SALTELLO</kbd>, <kbd>2 · POSA</kbd> (solo PORYGON1)</li>
+                <li><strong>SCENA</strong>: <kbd>WIRE</kbd> griglia cyberspazio, <kbd>ROOM</kbd> stanza solida <em>(placeholder)</em>, <kbd>TRON</kbd> skybox <em>(placeholder)</em></li>
                 <li>Dialog box in stile Game Boy con messaggi contestuali</li>
             </ul>
         </div>
@@ -498,12 +505,24 @@ bell = sin(π · t);   // 0 → 1 → 0 (campana)</code></pre>
                 <li><kbd>1</kbd> · Anim 1 — Saltello</li>
                 <li><kbd>2</kbd> · Anim 2 — Posa d'attacco</li>
                 <li><kbd>N</kbd> · Toggle overlay numerazione facce</li>
-                <li><kbd>← → ↑ ↓</kbd> · Traslazione camera in XZ</li>
+                <li><kbd>← → ↑ ↓</kbd> · Traslazione camera in XZ (con inerzia)</li>
                 <li><kbd>Space</kbd> / <kbd>Shift</kbd> · Camera su / giù</li>
                 <li>Mouse drag · Rotazione orbitale (con inerzia)</li>
             </ul>
         </div>
     </div>
+    <p>
+        Il movimento da tastiera usa un accumulatore di <em>velocity</em> con <em>damping</em>
+        (<code>CAM_ACCEL = 0.018</code>, <code>CAM_DAMPING ≈ 0.86</code>): tenendo premuta una freccia la
+        camera accelera, al rilascio decelera morbidamente — niente stop netti.
+    </p>
+    <p>
+        Le modalità <strong>ROOM</strong> e <strong>TRON</strong> sono attualmente <em>placeholder</em>
+        visivi (griglia ricolorata / doppia griglia rotante) e mostrano un <code>TODO</code> nel codice
+        (<code>drawBgRoomPlaceholder</code>, <code>drawBgSkyboxPlaceholder</code>): la modalità TRON è già
+        predisposta per usare le 6 facce del cubemap presente in
+        <span class="file">Resources/#4_HTML5_webgl_3/.../images/skybox/</span>.
+    </p>
     <p>
         Il pannello <span class="file">dat.GUI</span> in alto a destra espone Reset camera e le due animazioni di
         personalità come bottoni di backup ai tasti.
