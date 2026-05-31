@@ -20,6 +20,10 @@ const STATE = Object.freeze({
     PORYGON2:   'PORYGON2'
 });
 const VIEW = Object.freeze({ TEXTURE: 'TEXTURE', SOLID: 'SOLID', MESH: 'MESH' });
+// Modalità di sfondo: indipendenti dal view mode. WIREFRAME è la stanza-griglia
+// attuale; ROOM e SKYBOX sono placeholder che mostrano un visual distintivo
+// (e un console.log a primo ingresso) finché non vengono implementati a fondo.
+const BG = Object.freeze({ WIREFRAME: 'WIREFRAME', ROOM: 'ROOM', SKYBOX: 'SKYBOX' });
 
 // Durata assemblaggio (ms): usata sia per la transizione di stato che per l'interpolazione tAssemble
 const ASSEMBLE_DURATION = 3000;
@@ -27,6 +31,7 @@ const ASSEMBLE_DURATION = 3000;
 // Macchina a stati generale
 let gameState = STATE.INIT;
 let viewMode = VIEW.MESH; // si parte in wireframe; passa a SOLID quando l'assemblaggio finisce
+let bgMode = BG.WIREFRAME;
 let assembleStartTime = 0;
 
 let isDragging = false;
@@ -36,8 +41,12 @@ let rotationY = 0;
 let targetRotationX = 0;
 let targetRotationY = 0;
 
-// Variabili per il movimento della telecamera
+// Variabili per il movimento della telecamera (con inerzia: velocity + damping
+// danno una sensazione di "glide" anziché stop netto al rilascio del tasto).
 let cameraPos = [0, 0, 4.5];
+let cameraVel = [0, 0, 0];
+const CAM_ACCEL = 0.018;
+const CAM_DAMPING = 0.86;
 let keys = {};
 
 let evolveStartTime = 0;
@@ -45,7 +54,12 @@ let evolveDuration1 = 1500; // Porygon1 spin 3 volte (1500ms)
 let evolveDuration2 = 1000; // Porygon2 spin 2 volte (1000ms)
 
 // Riferimenti ai bottoni HUD (popolati in setupHUD)
-let btnAtk1, btnAtk2, btnEvo;
+let btnStartup, btnEvolve;
+let btnViewMesh, btnViewSolid, btnViewTexture;
+let btnAnim1, btnAnim2;
+let btnBgWire, btnBgRoom, btnBgSky;
+// Flag per stampare una sola volta i log di placeholder dei BG mode.
+let bgRoomLogged = false, bgSkyLogged = false;
 
 // Overlay debug: numerazione delle facce del corpo di Porygon1
 let showFaceLabels = false;
@@ -805,40 +819,117 @@ function updateDialog(text) {
     document.getElementById("dialog-box").innerText = text;
 }
 
+// Cambia stato e sincronizza l'HUD. Tutti i punti che mutano gameState
+// devono passare da qui: così i pannelli HUD restano sempre coerenti con
+// lo stato attivo (nessun bottone "orfano" abilitato fuori contesto).
+function setGameState(s) {
+    gameState = s;
+    applyHUDForState(s);
+}
+
+function setViewMode(v) {
+    viewMode = v;
+    applyHUDForState(gameState); // riallinea l'highlight is-active
+}
+
+function setBgMode(b) {
+    bgMode = b;
+    applyHUDForState(gameState);
+}
+
+// Mostra/nasconde le sezioni e i singoli bottoni HUD in base allo stato.
+// Regola: ogni stato pubblica esplicitamente quali sezioni e bottoni sono
+// significativi. Così non ci sono mai bottoni cliccabili che non hanno
+// senso nel contesto corrente.
+function applyHUDForState(state) {
+    const show = (el, on) => { if (el) el.classList.toggle('is-visible', !!on); };
+    const showBtn = (el, on) => { if (el) el.classList.toggle('hidden', !on); };
+    const setActive = (el, on) => { if (el) el.classList.toggle('is-active', !!on); };
+
+    const secFlow = document.getElementById('ctrl-flow');
+    const secView = document.getElementById('ctrl-view');
+    const secAnim = document.getElementById('ctrl-anim');
+    const secBg   = document.getElementById('ctrl-bg');
+
+    // Default: tutto chiuso, poi accendiamo per stato.
+    show(secFlow, false); show(secView, false); show(secAnim, false); show(secBg, false);
+    showBtn(btnStartup, false); showBtn(btnEvolve, false);
+    showBtn(btnViewMesh, false); showBtn(btnViewSolid, false); showBtn(btnViewTexture, false);
+
+    switch (state) {
+        case STATE.INIT:
+            show(secFlow, true); showBtn(btnStartup, true);
+            show(secBg, true);
+            break;
+        case STATE.ASSEMBLING:
+            // Niente controlli: assemblaggio non interrompibile, solo BG estetico.
+            show(secBg, true);
+            break;
+        case STATE.PORYGON1:
+            show(secFlow, true); showBtn(btnEvolve, true);
+            show(secView, true); showBtn(btnViewMesh, true); showBtn(btnViewSolid, true);
+            show(secAnim, true);
+            show(secBg, true);
+            break;
+        case STATE.EVOLVE_P1:
+        case STATE.EVOLVE_P2:
+            // Cinematica di evoluzione: nessun input utile.
+            show(secBg, true);
+            break;
+        case STATE.PORYGON2:
+            show(secView, true);
+            showBtn(btnViewMesh, true); showBtn(btnViewSolid, true); showBtn(btnViewTexture, true);
+            show(secBg, true);
+            break;
+    }
+
+    // Highlight is-active per la modalità corrente di vista e di sfondo.
+    setActive(btnViewMesh,    viewMode === VIEW.MESH);
+    setActive(btnViewSolid,   viewMode === VIEW.SOLID);
+    setActive(btnViewTexture, viewMode === VIEW.TEXTURE);
+    setActive(btnBgWire, bgMode === BG.WIREFRAME);
+    setActive(btnBgRoom, bgMode === BG.ROOM);
+    setActive(btnBgSky,  bgMode === BG.SKYBOX);
+}
+
 function setupHUD() {
-    const btnStart = document.getElementById("btn-startup");
-    btnAtk1 = document.getElementById("btn-azione1");
-    btnAtk2 = document.getElementById("btn-azione2");
-    btnEvo = document.getElementById("btn-evolve");
+    btnStartup     = document.getElementById("btn-startup");
+    btnEvolve      = document.getElementById("btn-evolve");
+    btnViewMesh    = document.getElementById("btn-view-mesh");
+    btnViewSolid   = document.getElementById("btn-view-solid");
+    btnViewTexture = document.getElementById("btn-view-texture");
+    btnAnim1       = document.getElementById("btn-anim1");
+    btnAnim2       = document.getElementById("btn-anim2");
+    btnBgWire      = document.getElementById("btn-bg-wire");
+    btnBgRoom      = document.getElementById("btn-bg-room");
+    btnBgSky       = document.getElementById("btn-bg-sky");
 
-    btnStart.onclick = () => {
-        btnStart.disabled = true;
+    btnStartup.onclick = () => {
         updateDialog("Inizializzazione cyberspazio... Assemblaggio Porygon in corso!");
-        gameState = STATE.ASSEMBLING;
         assembleStartTime = performance.now();
-        // La transizione ASSEMBLING -> PORYGON1 è ora gestita nel render loop (sync col tempo reale)
+        setGameState(STATE.ASSEMBLING);
+        // La transizione ASSEMBLING -> PORYGON1 è gestita nel render loop (sync col tempo reale)
     };
 
-    btnAtk1.onclick = () => {
-        viewMode = VIEW.MESH;
-        updateDialog("Visualizzazione impostata su: MESH (Wireframe)");
+    btnViewMesh.onclick    = () => { setViewMode(VIEW.MESH);    updateDialog("Vista: MESH (wireframe)"); };
+    btnViewSolid.onclick   = () => { setViewMode(VIEW.SOLID);   updateDialog("Vista: SOLID (senza texture)"); };
+    btnViewTexture.onclick = () => { setViewMode(VIEW.TEXTURE); updateDialog("Vista: TEXTURE"); };
+
+    btnAnim1.onclick = () => triggerAnim('atk1');
+    btnAnim2.onclick = () => triggerAnim('atk2');
+
+    btnEvolve.onclick = () => {
+        if (gameState !== STATE.PORYGON1) return;
+        updateDialog("Che succede?! Porygon si sta evolvendo!");
+        evolveStartTime = performance.now();
+        setGameState(STATE.EVOLVE_P1);
     };
-    btnAtk2.onclick = () => {
-        viewMode = VIEW.SOLID;
-        updateDialog("Visualizzazione impostata su: SOLID (Senza texture)");
-    };
-    
-    btnEvo.onclick = () => {
-        if (gameState === STATE.PORYGON1) {
-            updateDialog("Che succede?! Porygon si sta evolvendo!");
-            gameState = STATE.EVOLVE_P1;
-            evolveStartTime = performance.now();
-            // Il bottone verrà trasformato in "TEXTURE VIEW" al termine dell'evoluzione
-        } else if (gameState === STATE.PORYGON2) {
-            viewMode = VIEW.TEXTURE;
-            updateDialog("Visualizzazione impostata su: TEXTURE");
-        }
-    };
+
+    btnBgWire.onclick = () => { setBgMode(BG.WIREFRAME); updateDialog("Scena: griglia cyberspazio"); };
+    btnBgRoom.onclick = () => { setBgMode(BG.ROOM);      updateDialog("Scena: stanza renderizzata (placeholder)"); };
+    btnBgSky.onclick  = () => { setBgMode(BG.SKYBOX);    updateDialog("Scena: skybox Tron (placeholder)"); };
+
+    applyHUDForState(gameState);
 }
 
 function loadTexture(gl, url) {
@@ -1049,34 +1140,105 @@ function renderModel(renderablesArray, now, projectionMatrix, viewMatrix, pokeWo
     }
 }
 
+// =============================================================
+// BACKGROUND DISPATCHER
+// Tre modalità di sfondo. Solo WIREFRAME è completa (griglia cyberspazio
+// originale). ROOM e SKYBOX sono placeholder visivi distintivi finché non
+// verranno implementati: usano la stessa griglia con tinte/spaziatura diverse
+// così la differenza è immediatamente percepibile a schermo.
+// =============================================================
+
+// Utility: setup uniformi comuni del gridProgram per evitare ripetizioni.
+function bindGridProgramFrame(projectionMatrix, viewMatrix) {
+    gl.useProgram(gridProgram);
+    const gProjLoc  = gl.getUniformLocation(gridProgram, "u_projection");
+    const gViewLoc  = gl.getUniformLocation(gridProgram, "u_view");
+    const gWorldLoc = gl.getUniformLocation(gridProgram, "u_world");
+    const gColorLoc = gl.getUniformLocation(gridProgram, "u_color");
+    const gPosLoc   = gl.getAttribLocation(gridProgram, "a_position");
+    gl.uniformMatrix4fv(gProjLoc, false, projectionMatrix);
+    gl.uniformMatrix4fv(gViewLoc, false, viewMatrix);
+    gl.bindBuffer(gl.ARRAY_BUFFER, gridBuffer);
+    gl.enableVertexAttribArray(gPosLoc);
+    gl.vertexAttribPointer(gPosLoc, 3, gl.FLOAT, false, 0, 0);
+    return { gWorldLoc, gColorLoc };
+}
+
+function drawBgWireframe(projectionMatrix, viewMatrix) {
+    const { gWorldLoc, gColorLoc } = bindGridProgramFrame(projectionMatrix, viewMatrix);
+    gl.uniformMatrix4fv(gWorldLoc, false, m4.identity());
+    gl.uniform4fv(gColorLoc, [0.0, 0.8, 0.2, 0.3]); // verde cyberspazio
+    gl.drawArrays(gl.LINES, 0, gridVertexCount);
+}
+
+function drawBgRoomPlaceholder(projectionMatrix, viewMatrix) {
+    // TODO: sostituire con stanza renderizzata solida (pareti/pavimento con
+    // texture e luce). Per ora: stessa griglia in tonalità calda + leggera
+    // pulsazione, così la modalità è riconoscibile durante la demo.
+    if (!bgRoomLogged) { console.log('[BG] ROOM mode: placeholder attivo (TODO: stanza solida).'); bgRoomLogged = true; }
+    const { gWorldLoc, gColorLoc } = bindGridProgramFrame(projectionMatrix, viewMatrix);
+    gl.uniformMatrix4fv(gWorldLoc, false, m4.identity());
+    gl.uniform4fv(gColorLoc, [0.95, 0.55, 0.20, 0.35]);
+    gl.drawArrays(gl.LINES, 0, gridVertexCount);
+}
+
+function drawBgSkyboxPlaceholder(now, projectionMatrix, viewMatrix) {
+    // TODO: sostituire con skybox cubemap usando le 6 facce in
+    // Modulo1/Resources/#4_HTML5_webgl_3/HTML5_webgl_3/resources/images/skybox/
+    // (front, back, left, right, top, bottom). Vedere come riferimento
+    // cube_texture_skybox_environment_map.html nella stessa cartella.
+    if (!bgSkyLogged) { console.log('[BG] SKYBOX mode: placeholder attivo (TODO: cubemap Tron).'); bgSkyLogged = true; }
+    const { gWorldLoc, gColorLoc } = bindGridProgramFrame(projectionMatrix, viewMatrix);
+    // Doppia griglia ruotata lentamente per dare un effetto "vortice Tron".
+    let w = m4.yRotate(m4.identity(), now * 0.0002);
+    gl.uniformMatrix4fv(gWorldLoc, false, w);
+    gl.uniform4fv(gColorLoc, [0.30, 0.70, 1.00, 0.45]);
+    gl.drawArrays(gl.LINES, 0, gridVertexCount);
+    w = m4.yRotate(m4.identity(), -now * 0.00035);
+    w = m4.scale(w, 0.7, 1, 0.7);
+    gl.uniformMatrix4fv(gWorldLoc, false, w);
+    gl.uniform4fv(gColorLoc, [0.55, 0.30, 1.00, 0.30]);
+    gl.drawArrays(gl.LINES, 0, gridVertexCount);
+}
+
+function drawBackground(now, projectionMatrix, viewMatrix) {
+    if (bgMode === BG.ROOM)        drawBgRoomPlaceholder(projectionMatrix, viewMatrix);
+    else if (bgMode === BG.SKYBOX) drawBgSkyboxPlaceholder(now, projectionMatrix, viewMatrix);
+    else                            drawBgWireframe(projectionMatrix, viewMatrix);
+}
+
 function render(now) {
+    // Pulisci colore in funzione del BG: ogni modalità ha la sua tinta di base
+    // (anche se la maggior parte del lavoro lo fa drawBackground).
+    if (bgMode === BG.ROOM)        gl.clearColor(0.08, 0.04, 0.02, 1.0);
+    else if (bgMode === BG.SKYBOX) gl.clearColor(0.03, 0.02, 0.10, 1.0);
+    else                            gl.clearColor(0.0,  0.0,  0.0,  1.0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.disable(gl.CULL_FACE); // Vogliamo vedere anche il retro dei poligoni durante l'assemblaggio/evoluzione
 
     // Transizione ASSEMBLING -> PORYGON1 sincronizzata col tempo reale
     if (gameState === STATE.ASSEMBLING && (now - assembleStartTime) >= ASSEMBLE_DURATION) {
-        gameState = STATE.PORYGON1;
         // Una volta assemblato il modello, mostriamo i colori (richiesta utente).
         viewMode = VIEW.SOLID;
         updateDialog("Porygon è pronto per la battaglia cyberspaziale!");
-        if (btnAtk1) btnAtk1.disabled = false;
-        if (btnAtk2) btnAtk2.disabled = false;
-        if (btnEvo)  btnEvo.disabled  = false;
+        setGameState(STATE.PORYGON1);
     }
 
-    // Aggiornamento posizione camera
-    const speed = 0.1;
-    // Destra / Sinistra sull'asse X
-    if (keys['ArrowLeft'])  cameraPos[0] -= speed; 
-    if (keys['ArrowRight']) cameraPos[0] += speed; 
-
-    // Avanti / Indietro sull'asse Z
-    if (keys['ArrowUp'])    cameraPos[2] -= speed; 
-    if (keys['ArrowDown'])  cameraPos[2] += speed; 
-    
-    // Su / Giù sull'asse Y
-    if (keys['Space'])      cameraPos[1] += speed; 
-    if (keys['ShiftLeft'] || keys['ShiftRight']) cameraPos[1] -= speed; 
+    // Aggiornamento posizione camera con inerzia.
+    // I tasti modificano un'accelerazione costante; la velocity è smorzata
+    // ogni frame e poi sommata alla posizione: parte e si ferma morbidamente.
+    if (keys['ArrowLeft'])  cameraVel[0] -= CAM_ACCEL;
+    if (keys['ArrowRight']) cameraVel[0] += CAM_ACCEL;
+    if (keys['ArrowUp'])    cameraVel[2] -= CAM_ACCEL;
+    if (keys['ArrowDown'])  cameraVel[2] += CAM_ACCEL;
+    if (keys['Space'])      cameraVel[1] += CAM_ACCEL;
+    if (keys['ShiftLeft'] || keys['ShiftRight']) cameraVel[1] -= CAM_ACCEL;
+    cameraVel[0] *= CAM_DAMPING;
+    cameraVel[1] *= CAM_DAMPING;
+    cameraVel[2] *= CAM_DAMPING;
+    cameraPos[0] += cameraVel[0];
+    cameraPos[1] += cameraVel[1];
+    cameraPos[2] += cameraVel[2];
     
     const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
     const projectionMatrix = m4.perspective(60 * Math.PI / 180, aspect, 0.1, 100);
@@ -1127,8 +1289,8 @@ function render(now) {
             pokeWorldMatrix = m4.yRotate(pokeWorldMatrix, spinAmount);
             drawPorygon1 = true;
         } else {
-            gameState = STATE.EVOLVE_P2;
             evolveStartTime = now;
+            setGameState(STATE.EVOLVE_P2);
         }
     }
     
@@ -1140,31 +1302,15 @@ function render(now) {
             pokeWorldMatrix = m4.yRotate(pokeWorldMatrix, spinAmount);
             drawPorygon2 = true;
         } else {
-            gameState = STATE.PORYGON2;
             viewMode = VIEW.TEXTURE;
             updateDialog("Porygon si è evoluto in Porygon2! Visualizzazione: TEXTURE");
-            if (btnEvo) btnEvo.innerText = "TEXTURE VIEW";
+            setGameState(STATE.PORYGON2);
             drawPorygon2 = true;
         }
     }
 
-    // 1. DISEGNO STANZA CYBERSPAZIALE
-    gl.useProgram(gridProgram);
-    const gProjLoc = gl.getUniformLocation(gridProgram, "u_projection");
-    const gViewLoc = gl.getUniformLocation(gridProgram, "u_view");
-    const gWorldLoc = gl.getUniformLocation(gridProgram, "u_world");
-    const gColorLoc = gl.getUniformLocation(gridProgram, "u_color");
-    const gPosLoc = gl.getAttribLocation(gridProgram, "a_position");
-
-    gl.uniformMatrix4fv(gProjLoc, false, projectionMatrix);
-    gl.uniformMatrix4fv(gViewLoc, false, viewMatrix);
-    gl.uniformMatrix4fv(gWorldLoc, false, m4.identity()); // La griglia rimane ferma nel mondo!
-    gl.uniform4fv(gColorLoc, [0.0, 0.8, 0.2, 0.3]); 
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, gridBuffer);
-    gl.enableVertexAttribArray(gPosLoc);
-    gl.vertexAttribPointer(gPosLoc, 3, gl.FLOAT, false, 0, 0);
-    gl.drawArrays(gl.LINES, 0, gridVertexCount);
+    // 1. DISEGNO SFONDO (dispatcher in funzione di bgMode)
+    drawBackground(now, projectionMatrix, viewMatrix);
 
     // 1b. CILINDRO DI RAGGI (solo durante l'assemblaggio)
     if (gameState === STATE.ASSEMBLING) {
