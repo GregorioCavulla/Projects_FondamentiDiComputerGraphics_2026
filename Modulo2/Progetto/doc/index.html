@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Modulo 2 — Porygon-Z · Cyber Hunt · Relazione</title>
+<style>
+    :root {
+        --bg-0: #000; --bg-1: #061806;
+        --grid: rgba(0, 255, 80, 0.10);
+        --neon: #00ff66; --neon-dim: #0a8c3a;
+        --cyan: #66f0ff; --yellow: #ffe066;
+        --ink: #c9ffd6; --panel: rgba(0, 18, 7, 0.78);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body {
+        font-family: 'Courier New', ui-monospace, monospace; color: var(--ink);
+        background:
+            radial-gradient(ellipse at center top, rgba(0,255,102,0.08), transparent 60%),
+            linear-gradient(180deg, var(--bg-1), var(--bg-0));
+        background-attachment: fixed; min-height: 100vh; line-height: 1.65;
+    }
+    body::before {
+        content: ''; position: fixed; inset: 0;
+        background-image:
+            linear-gradient(var(--grid) 1px, transparent 1px),
+            linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+        background-size: 48px 48px; pointer-events: none; z-index: 0;
+        mask-image: linear-gradient(180deg, transparent 0%, black 30%, black 70%, transparent 100%);
+    }
+    main { position: relative; z-index: 1; max-width: 940px; margin: 0 auto; padding: 36px 24px 80px; }
+    .topbar {
+        display: flex; justify-content: space-between; align-items: center;
+        font-size: 0.75rem; letter-spacing: 0.3em; color: var(--neon-dim);
+        text-transform: uppercase; margin-bottom: 22px;
+    }
+    .topbar a { color: var(--neon-dim); text-decoration: none; }
+    .topbar a:hover { color: var(--neon); }
+    h1 {
+        color: var(--neon); font-size: clamp(1.7rem, 4vw, 2.6rem); margin: 0 0 4px 0;
+        letter-spacing: 0.06em; text-shadow: 0 0 8px rgba(0,255,102,0.5);
+    }
+    h1 .accent { color: var(--cyan); }
+    .subtitle { color: var(--ink); opacity: 0.75; margin: 0 0 28px 0; font-size: 0.95rem; }
+    h2 {
+        color: var(--neon); margin: 38px 0 10px; padding-bottom: 4px;
+        border-bottom: 1px solid var(--neon-dim); font-size: 1.3rem; letter-spacing: 0.05em;
+    }
+    h2::before { content: '» '; color: var(--neon-dim); }
+    h3 { color: var(--cyan); margin: 22px 0 6px; font-size: 1.05rem; letter-spacing: 0.03em; }
+    h3::before { content: '› '; color: var(--neon-dim); }
+    p, li { color: var(--ink); }
+    a { color: var(--cyan); }
+    a:hover { color: var(--neon); }
+    code, kbd, .file {
+        font-family: 'Courier New', monospace; background: rgba(0, 60, 25, 0.4);
+        border: 1px solid rgba(0,255,102,0.25); color: var(--neon);
+        padding: 1px 6px; border-radius: 3px; font-size: 0.9em;
+    }
+    kbd {
+        background: rgba(0,0,0,0.55); border-color: var(--neon-dim); color: var(--yellow);
+        box-shadow: 0 1px 0 rgba(0,255,102,0.4) inset; font-weight: bold;
+    }
+    .file { color: var(--cyan); border-color: rgba(95,199,211,0.35); background: rgba(0,40,60,0.3); }
+    pre {
+        background: var(--panel); border: 1px solid var(--neon-dim); border-left: 3px solid var(--neon);
+        padding: 14px 16px; border-radius: 4px; overflow-x: auto; font-size: 0.85rem;
+        color: var(--ink); box-shadow: 0 0 14px rgba(0,255,102,0.08);
+    }
+    pre code { background: none; border: none; color: inherit; padding: 0; }
+    ul { padding-left: 1.2em; }
+    ul li::marker { color: var(--neon); }
+    table { width: 100%; border-collapse: collapse; margin: 8px 0 16px; font-size: 0.9rem; }
+    th, td { border: 1px solid var(--neon-dim); padding: 8px 10px; text-align: left; vertical-align: top; }
+    th { background: rgba(0, 80, 30, 0.35); color: var(--neon); letter-spacing: 0.05em; }
+    td code { font-size: 0.85em; }
+    .toc {
+        background: var(--panel); border: 1px dashed var(--neon-dim); padding: 10px 18px;
+        border-radius: 4px; font-size: 0.9rem; margin-bottom: 30px;
+    }
+    .toc ol { margin: 6px 0 0; padding-left: 1.4em; }
+    .callout {
+        border-left: 3px solid var(--cyan); background: rgba(0, 50, 70, 0.35);
+        padding: 10px 14px; border-radius: 0 4px 4px 0; margin: 14px 0; font-size: 0.92rem;
+    }
+    .callout strong { color: var(--cyan); }
+    .warn { border-left-color: var(--yellow); background: rgba(60,50,0,0.3); }
+    .warn strong { color: var(--yellow); }
+    footer {
+        margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--neon-dim);
+        text-align: center; font-size: 0.75rem; letter-spacing: 0.2em; color: var(--neon-dim);
+    }
+    .cursor {
+        display: inline-block; width: 0.55em; height: 1em; vertical-align: -0.15em;
+        background: var(--neon); margin-left: 4px; animation: blink 1s steps(2, start) infinite;
+    }
+    @keyframes blink { to { visibility: hidden; } }
+</style>
+</head>
+<body>
+<main>
+    <div class="topbar">
+        <a href="../../../index.html">« Hub</a>
+        <span>// FCG 2025/2026 · Modulo 2</span>
+        <a href="../project/index.html">Avvia Demo »</a>
+    </div>
+
+    <h1>Porygon-<span class="accent">Z</span> · Cyber Hunt<span class="cursor"></span></h1>
+    <p class="subtitle">Relazione del progetto di Fondamenti di Computer Grafica — Modulo 2 (Three.js / WebGL real-time)</p>
+
+    <div class="toc">
+        <strong>Indice</strong>
+        <ol>
+            <li><a href="#descrizione">Descrizione e continuità col Modulo 1</a></li>
+            <li><a href="#requisiti">Mappatura della teoria del Modulo 2</a></li>
+            <li><a href="#architettura">Architettura del codice</a></li>
+            <li><a href="#scena">Scene · Camera · Renderer</a></li>
+            <li><a href="#luci">Illuminazione, materiali PBR e ombre</a></li>
+            <li><a href="#modelli">Caricamento GLB e normalizzazione skinned</a></li>
+            <li><a href="#terzapersona">Telecamera in terza persona e controlli</a></li>
+            <li><a href="#raggio">Il raggio di energia che emette luce</a></li>
+            <li><a href="#nemici">Nemici, ondate e collisioni</a></li>
+            <li><a href="#instancing">Ottimizzazione: InstancedMesh</a></li>
+            <li><a href="#librerie">Librerie ed esecuzione</a></li>
+            <li><a href="#foto">Foto dello studente (requisito)</a></li>
+        </ol>
+    </div>
+
+    <h2 id="descrizione">1. Descrizione e continuità col Modulo 1</h2>
+    <p>
+        <strong>Porygon-Z · Cyber Hunt</strong> è un <strong>third-person shooter</strong> arcade in
+        <strong>Three.js</strong>. Il giocatore controlla <strong>Porygon-Z</strong> — terzo stadio evolutivo
+        del Porygon protagonista del Modulo 1 — all'interno di un'arena-griglia in stile cyberspazio/TRON,
+        e deve respingere ondate di Pokémon Drago (<strong>Gible → Gabite → Garchomp</strong>) colpendoli con
+        un <strong>raggio di energia luminoso</strong>.
+    </p>
+    <p>
+        Il progetto è la prosecuzione naturale del Modulo 1: si mantiene l'identità narrativa (Porygon),
+        l'estetica neon-verde e il pattern a <strong>macchina a stati</strong>, ma il focus tecnico passa dal
+        WebGL "a basso livello" alla <strong>grafica 3D real-time strutturata</strong> con Three.js: scene graph,
+        materiali PBR, illuminazione con ombre, caricamento di asset <span class="file">.glb</span> e
+        ottimizzazione delle draw-call.
+    </p>
+
+    <h2 id="requisiti">2. Mappatura della teoria del Modulo 2</h2>
+    <p>Ogni argomento trattato a lezione trova un riscontro diretto nel progetto:</p>
+    <table>
+        <thead><tr><th>Argomento del Modulo 2</th><th>Implementazione nel progetto</th></tr></thead>
+        <tbody>
+            <tr><td>Architettura Three.js (Scene/Camera/Renderer/Mesh)</td>
+                <td>Setup completo in <span class="file">main.js</span> + <span class="file">world.js</span>: <code>Scene</code> con scene graph, <code>PerspectiveCamera</code>, <code>WebGLRenderer</code>.</td></tr>
+            <tr><td>AmbientLight + DirectionalLight</td>
+                <td>Luce ambientale + "sole" direzionale che illumina e proietta le ombre sull'arena.</td></tr>
+            <tr><td>Shadow map (PCFSoftShadowMap, bias, frustum)</td>
+                <td><code>renderer.shadowMap</code> abilitata; il sole configura <code>mapSize</code>, frustum ortografico e <code>bias</code> anti shadow-acne.</td></tr>
+            <tr><td>MeshStandardMaterial (PBR)</td>
+                <td>Pavimento, pilastri e modelli reagiscono fisicamente alla luce; emissive per l'effetto neon.</td></tr>
+            <tr><td>Geometry & Mesh, CanvasTexture</td>
+                <td>Pavimento a griglia generato proceduralmente su <code>&lt;canvas&gt;</code> e usato come <code>CanvasTexture</code>.</td></tr>
+            <tr><td>InstancedMesh (ottimizzazione draw-call)</td>
+                <td>I pilastri/cristalli del perimetro sono un'unica <code>InstancedMesh</code> (1 draw-call per decine di copie).</td></tr>
+            <tr><td>Nebbia (Fog)</td>
+                <td><code>THREE.Fog</code> per la profondità atmosferica del cyberspazio.</td></tr>
+            <tr><td>Caricamento modelli (GLTF/GLB)</td>
+                <td><code>GLTFLoader</code> per Porygon-Z e i tre nemici; clonazione skinned con <code>SkeletonUtils</code>.</td></tr>
+            <tr><td>GUI a runtime (lil-gui)</td>
+                <td>Pannello "Impostazioni" per ombre, sensibilità ed esposizione (come negli esempi del corso).</td></tr>
+            <tr><td>Ambiente locale (CORS / server)</td>
+                <td>L'app va servita via HTTP per caricare i <span class="file">.glb</span> (vedi §11).</td></tr>
+        </tbody>
+    </table>
+    <div class="callout"><strong>Scelta progettuale.</strong> Three.js è vendorizzato <em>localmente</em>
+        in <span class="file">project/lib/</span> e caricato via <code>importmap</code>: nessuna dipendenza
+        online né step di build, l'app gira con un semplice server statico.</div>
+
+    <h2 id="architettura">3. Architettura del codice</h2>
+    <p>Il codice è organizzato in moduli ES, ognuno con una responsabilità chiara:</p>
+    <table>
+        <thead><tr><th>File</th><th>Ruolo</th></tr></thead>
+        <tbody>
+            <tr><td><span class="file">js/config.js</span></td><td>Costanti di gioco: camera, statistiche nemici, ondate, parametri del raggio.</td></tr>
+            <tr><td><span class="file">js/world.js</span></td><td>Scene, renderer-light setup, luci, ombre, pavimento, pareti e pilastri instanziati.</td></tr>
+            <tr><td><span class="file">js/loaders.js</span></td><td>Caricamento GLB + normalizzazione (scala/pivot) skinned-aware.</td></tr>
+            <tr><td><span class="file">js/player.js</span></td><td>Porygon-Z: movimento, mira, hover procedurale, telecamera al seguito.</td></tr>
+            <tr><td><span class="file">js/enemies.js</span></td><td>Gible/Gabite/Garchomp: spawn, inseguimento, ondate, hit-test raggio-sfera.</td></tr>
+            <tr><td><span class="file">js/beam.js</span></td><td>Raggio di energia con luce emessa, muzzle flash e flash d'impatto.</td></tr>
+            <tr><td><span class="file">js/main.js</span></td><td>Bootstrap, game loop, macchina a stati, input (pointer lock) e HUD.</td></tr>
+        </tbody>
+    </table>
+    <p>La macchina a stati coordina il flusso, in continuità col Modulo 1:</p>
+    <pre><code>LOADING → MENU → PLAYING → (GAMEOVER | VICTORY) → MENU</code></pre>
+
+    <h2 id="scena">4. Scene · Camera · Renderer</h2>
+    <p>I tre oggetti fondamentali dell'architettura Three.js:</p>
+    <pre><code>const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0x02100a, 28, 78);
+
+const camera = new THREE.PerspectiveCamera(62, w/h, 0.1, 500);</code></pre>
+
+    <h2 id="luci">5. Illuminazione, materiali PBR e ombre</h2>
+    <p>
+        L'arena è illuminata da una <code>AmbientLight</code> (riempimento) e da una
+        <code>DirectionalLight</code> (il "sole") che proietta le ombre. La shadow map è configurata
+        esattamente come negli esempi del corso, con il frustum ortografico dimensionato sull'arena e un
+        <code>bias</code> negativo per evitare lo <em>shadow acne</em>:
+    </p>
+    <pre><code>const sun = new THREE.DirectionalLight(0xeafff2, 2.2);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.left/right/top/bottom = ±(ARENA.HALF + 6);
+sun.shadow.bias = -0.0008;</code></pre>
+    <p>
+        Il sole <strong>segue il giocatore</strong> (<code>focusShadow</code>): così il frustum d'ombra resta
+        sempre centrato e le ombre restano nitide ovunque ci si muova. Pavimento, pilastri e modelli usano
+        <code>MeshStandardMaterial</code> (PBR) con componente <code>emissive</code> per il bagliore neon.
+    </p>
+
+    <h2 id="modelli">6. Caricamento GLB e normalizzazione skinned</h2>
+    <p>
+        I quattro modelli (<span class="file">porygon-z.glb</span>, <span class="file">gible.glb</span>,
+        <span class="file">gabite.glb</span>, <span class="file">garchomp.glb</span>) sono caricati con
+        <code>GLTFLoader</code> e portati a una scala/pivot comuni (piedi a <code>y=0</code>, altezza nota).
+    </p>
+    <div class="callout warn"><strong>Problema affrontato.</strong> I modelli sono <em>skinned</em> (riggati).
+        La bounding box standard <code>Box3.setFromObject</code> usa la <em>bind pose</em> della geometria e
+        <strong>non</strong> tiene conto della scala applicata dall'armatura: Porygon-Z risultava gigante.
+        La normalizzazione calcola quindi la box <strong>reale</strong> applicando le trasformazioni delle ossa
+        vertice per vertice con <code>applyBoneTransform</code>, ottenendo dimensioni corrette per tutti i rig.</div>
+    <p>
+        I <span class="file">.glb</span> non contengono clip di animazione, quindi l'animazione è
+        <strong>procedurale</strong> (hover/bob, rotazione verso il bersaglio) — in continuità con l'approccio
+        del Modulo 1. I nemici sono clonati dal prototipo con <code>SkeletonUtils.clone</code>, necessario per
+        duplicare correttamente mesh con scheletro.
+    </p>
+
+    <h2 id="terzapersona">7. Telecamera in terza persona e controlli</h2>
+    <p>
+        La telecamera orbita dietro a Porygon-Z a distanza/altezza fisse, con <em>pitch</em> limitato. Il mouse
+        (in <strong>pointer lock</strong>) controlla <em>yaw</em> e <em>pitch</em>; <kbd>W A S D</kbd> muovono il
+        personaggio in modo relativo allo sguardo; <kbd>Shift</kbd> è lo scatto. Il movimento è confinato
+        ai bordi dell'arena.
+    </p>
+    <table>
+        <thead><tr><th>Input</th><th>Azione</th></tr></thead>
+        <tbody>
+            <tr><td><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd></td><td>Muovi Porygon-Z</td></tr>
+            <tr><td><kbd>Mouse</kbd></td><td>Mira / ruota la telecamera</td></tr>
+            <tr><td><kbd>Click sx</kbd></td><td>Spara il raggio luminoso</td></tr>
+            <tr><td><kbd>Shift</kbd></td><td>Scatto</td></tr>
+            <tr><td><kbd>ESC</kbd></td><td>Rilascia il mouse</td></tr>
+        </tbody>
+    </table>
+
+    <h2 id="raggio">8. Il raggio di energia che emette luce</h2>
+    <p>Ogni colpo (in <span class="file">beam.js</span>) è composto da più elementi che danno l'effetto di energia luminosa:</p>
+    <ul>
+        <li><strong>Nucleo + alone</strong>: due cilindri con <code>MeshBasicMaterial</code> in
+            <code>AdditiveBlending</code> che "brillano" lungo la traiettoria.</li>
+        <li><strong>Luce emessa</strong>: una <code>PointLight</code> ciano a metà raggio e una all'uscita
+            illuminano realmente la scena, sfumando in ~0,12 s.</li>
+        <li><strong>Muzzle flash</strong> all'uscita del colpo e <strong>flash d'impatto</strong> espandente
+            sul nemico colpito.</li>
+    </ul>
+    <p>
+        La mira è orizzontale nel verso del muso (lo sparo segue Porygon-Z, non l'inclinazione della camera),
+        così i nemici a terra vengono colpiti in modo affidabile. La collisione del raggio usa
+        un'<strong>intersezione raggio-sfera analitica</strong> contro la sfera di ogni nemico: più veloce e
+        robusta di un raycast su mesh skinnate.
+    </p>
+
+    <h2 id="nemici">9. Nemici, ondate e collisioni</h2>
+    <p>
+        Tre specie con statistiche crescenti (HP, velocità, danno, punti). I nemici inseguono il giocatore sul
+        piano, si orientano verso di lui e, a contatto, infliggono danno continuo all'energia di Porygon-Z.
+        Le <strong>ondate</strong> sono definite dichiarativamente in <span class="file">config.js</span>:
+    </p>
+    <pre><code>ONDATA 1 — sciame di Gible
+ONDATA 2 — Gible + Gabite
+ONDATA 3 — Gabite in branco
+BOSS    — Garchomp (+ Gabite)</code></pre>
+    <p>
+        Lo spawn è progressivo (max nemici simultanei + intervallo). Ripulita un'ondata, parte la successiva;
+        dopo il boss si raggiunge la <strong>vittoria</strong>. Se l'energia arriva a zero, <strong>game over</strong>.
+    </p>
+
+    <h2 id="instancing">10. Ottimizzazione: InstancedMesh</h2>
+    <p>
+        Il perimetro dell'arena è decorato da decine di pilastri-cristallo. Invece di altrettante mesh
+        (e relative draw-call), si usa una singola <code>InstancedMesh</code> con una matrice di trasformazione
+        per istanza — esattamente la tecnica di <em>instancing</em> vista nel laboratorio "Forest" per ridurre
+        i colli di bottiglia sulle draw-call.
+    </p>
+    <pre><code>const im = new THREE.InstancedMesh(geo, mat, COUNT);
+for (let i = 0; i &lt; COUNT; i++) { dummy.position.set(...); dummy.updateMatrix();
+    im.setMatrixAt(i, dummy.matrix); }
+im.instanceMatrix.needsUpdate = true;</code></pre>
+
+    <h2 id="librerie">11. Librerie ed esecuzione</h2>
+    <p>Unica dipendenza: <strong>Three.js</strong> (build module + addons), servita localmente:</p>
+    <table>
+        <thead><tr><th>Componente</th><th>Uso</th></tr></thead>
+        <tbody>
+            <tr><td><span class="file">lib/three.module.js</span></td><td>Core di Three.js</td></tr>
+            <tr><td><span class="file">lib/jsm/loaders/GLTFLoader.js</span></td><td>Caricamento dei modelli <span class="file">.glb</span></td></tr>
+            <tr><td><span class="file">lib/jsm/utils/SkeletonUtils.js</span></td><td>Clonazione delle mesh skinnate</td></tr>
+            <tr><td><span class="file">lib/jsm/libs/lil-gui.module.min.js</span></td><td>Pannello impostazioni a runtime</td></tr>
+        </tbody>
+    </table>
+    <p>Three.js ha bisogno di un server HTTP per caricare gli asset. Dalla cartella <span class="file">project/</span>:</p>
+    <pre><code>python3 -m http.server 8080
+# poi apri http://localhost:8080/</code></pre>
+
+    <h2 id="foto">12. Foto dello studente (requisito)</h2>
+    <div class="callout warn">
+        <strong>Da completare.</strong> Inserisci una tua foto riconoscibile (tipo fototessera/badge) in
+        <span class="file">project/assets/trainer.jpg</span>. Viene mostrata nella "trainer card" in basso a
+        sinistra dell'HUD. In assenza del file, l'interfaccia mostra automaticamente un segnaposto
+        <em>"FOTO STUDENTE"</em>.
+    </div>
+
+    <footer>FONDAMENTI DI COMPUTER GRAPHICS · 2025/2026 · MODULO 2 · PORYGON-Z CYBER HUNT</footer>
+</main>
+</body>
+</html>

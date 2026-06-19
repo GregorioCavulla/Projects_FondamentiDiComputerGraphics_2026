@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Porygon-Z · Cyber Hunt</title>
+<style>
+    :root {
+        --neon: #00ff66;
+        --neon-dim: #0a8c3a;
+        --cyan: #66f0ff;
+        --pink: #ee8aa6;
+        --ink: #c9ffd6;
+        --panel: rgba(0, 18, 7, 0.82);
+        --danger: #ff4060;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
+    body { font-family: 'Courier New', ui-monospace, monospace; color: var(--ink); user-select: none; }
+    canvas { display: block; }
+
+    /* ---- Overlay HUD (sopra il canvas) ---- */
+    #hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
+
+    /* Mirino centrale */
+    #crosshair {
+        position: absolute; top: 50%; left: 50%; width: 26px; height: 26px;
+        transform: translate(-50%, -50%);
+        opacity: 0.9;
+    }
+    #crosshair::before, #crosshair::after {
+        content: ''; position: absolute; background: var(--cyan);
+        box-shadow: 0 0 6px var(--cyan);
+    }
+    #crosshair::before { left: 50%; top: 0; width: 2px; height: 100%; transform: translateX(-50%); }
+    #crosshair::after  { top: 50%; left: 0; height: 2px; width: 100%; transform: translateY(-50%); }
+
+    /* Barra in alto: ondata / nemici / punteggio */
+    #hud-top {
+        position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+        display: flex; gap: 14px; align-items: stretch;
+        font-size: 0.82rem; letter-spacing: 0.12em; text-transform: uppercase;
+    }
+    .stat {
+        background: var(--panel); border: 1px solid var(--neon-dim);
+        padding: 8px 16px; border-radius: 4px; min-width: 110px; text-align: center;
+        box-shadow: 0 0 14px rgba(0,255,102,0.08);
+    }
+    .stat .label { color: var(--neon-dim); font-size: 0.66rem; display: block; }
+    .stat .value { color: var(--neon); font-size: 1.15rem; font-weight: bold; text-shadow: 0 0 8px rgba(0,255,102,0.5); }
+    #stat-score .value { color: var(--cyan); text-shadow: 0 0 8px rgba(102,240,255,0.5); }
+
+    /* Barra vita in basso */
+    #healthbar-wrap {
+        position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%);
+        width: min(440px, 60vw);
+    }
+    #healthbar-label { font-size: 0.7rem; letter-spacing: 0.2em; color: var(--neon-dim); margin-bottom: 4px; }
+    #healthbar {
+        height: 18px; border: 2px solid var(--neon-dim); border-radius: 9px;
+        background: rgba(0,0,0,0.55); overflow: hidden;
+    }
+    #healthbar-fill {
+        height: 100%; width: 100%;
+        background: linear-gradient(90deg, #00ff66, #66f0ff);
+        transition: width 0.12s linear, background 0.3s;
+    }
+
+    /* Trainer card con foto studente (requisito: viso riconoscibile) */
+    #trainer-card {
+        position: absolute; bottom: 22px; left: 22px;
+        background: var(--panel); border: 1px solid var(--neon-dim); border-radius: 6px;
+        padding: 8px; display: flex; gap: 10px; align-items: center; width: 210px;
+    }
+    #trainer-photo {
+        width: 56px; height: 56px; border-radius: 5px; object-fit: cover;
+        border: 1px solid var(--cyan); background: #06160c; flex: 0 0 auto;
+        display: grid; place-items: center; color: var(--cyan); font-size: 0.6rem; text-align: center;
+    }
+    #trainer-info .name { color: var(--neon); font-weight: bold; font-size: 0.9rem; }
+    #trainer-info .role { color: var(--neon-dim); font-size: 0.66rem; letter-spacing: 0.1em; }
+
+    /* Annunci centrali (es. "ONDATA 2") */
+    #message-center {
+        position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%);
+        text-align: center; color: var(--neon); font-size: 2rem; letter-spacing: 0.1em;
+        text-shadow: 0 0 16px rgba(0,255,102,0.6); opacity: 0; transition: opacity 0.4s;
+    }
+    #message-center.show { opacity: 1; }
+    #message-center .sub { display: block; font-size: 0.9rem; color: var(--cyan); margin-top: 8px; letter-spacing: 0.2em; }
+
+    /* Schermate (menu / game over / vittoria / caricamento) */
+    .screen {
+        position: absolute; inset: 0; z-index: 20; pointer-events: auto;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        text-align: center; gap: 18px;
+        background:
+            radial-gradient(ellipse at center, rgba(0,255,102,0.08), transparent 60%),
+            rgba(0,4,2,0.92);
+    }
+    .screen.hidden { display: none; }
+    .screen h1 {
+        color: var(--neon); font-size: clamp(2rem, 6vw, 3.6rem); margin: 0; letter-spacing: 0.08em;
+        text-shadow: 0 0 18px rgba(0,255,102,0.6);
+    }
+    .screen h1 .accent { color: var(--cyan); }
+    .screen p { max-width: 540px; color: var(--ink); opacity: 0.85; line-height: 1.7; padding: 0 20px; }
+    .controls-help { display: grid; grid-template-columns: auto auto; gap: 6px 16px; font-size: 0.85rem; }
+    .controls-help kbd {
+        background: rgba(0,0,0,0.6); border: 1px solid var(--neon-dim); color: var(--cyan);
+        padding: 2px 8px; border-radius: 4px; font-weight: bold;
+    }
+    .controls-help span { text-align: left; align-self: center; }
+    .btn {
+        pointer-events: auto; cursor: pointer; font-family: inherit;
+        background: rgba(0,40,18,0.6); color: var(--neon); border: 2px solid var(--neon);
+        padding: 14px 38px; border-radius: 6px; font-size: 1.1rem; letter-spacing: 0.2em;
+        text-transform: uppercase; transition: all 0.15s;
+        box-shadow: 0 0 16px rgba(0,255,102,0.25);
+    }
+    .btn:hover { background: var(--neon); color: #001a0a; box-shadow: 0 0 26px rgba(0,255,102,0.6); }
+    #screen-gameover h1 { color: var(--danger); text-shadow: 0 0 18px rgba(255,64,96,0.6); }
+    .final-score { font-size: 1.4rem; color: var(--cyan); letter-spacing: 0.1em; }
+
+    /* Spinner di caricamento */
+    .spinner {
+        width: 54px; height: 54px; border: 4px solid var(--neon-dim); border-top-color: var(--neon);
+        border-radius: 50%; animation: spin 0.9s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #loadbar { width: 260px; height: 8px; border: 1px solid var(--neon-dim); border-radius: 4px; overflow: hidden; }
+    #loadbar-fill { height: 100%; width: 0%; background: var(--neon); transition: width 0.2s; }
+
+    .hint { position: absolute; bottom: 6px; right: 12px; font-size: 0.66rem; color: var(--neon-dim); letter-spacing: 0.1em; }
+</style>
+</head>
+<body>
+
+<!-- HUD di gioco -->
+<div id="hud">
+    <div id="crosshair"></div>
+
+    <div id="hud-top">
+        <div class="stat"><span class="label">Ondata</span><span class="value" id="val-wave">—</span></div>
+        <div class="stat"><span class="label">Nemici</span><span class="value" id="val-enemies">0</span></div>
+        <div class="stat" id="stat-score"><span class="label">Punti</span><span class="value" id="val-score">0</span></div>
+    </div>
+
+    <div id="trainer-card">
+        <img id="trainer-photo" src="assets/trainer.jpg"
+             alt="Foto studente"
+             onerror="this.outerHTML='&lt;div id=\'trainer-photo\'&gt;FOTO&lt;br&gt;STUDENTE&lt;/div&gt;'">
+        <div id="trainer-info">
+            <div class="name">ALLENATORE</div>
+            <div class="role">FCG · Modulo 2</div>
+        </div>
+    </div>
+
+    <div id="healthbar-wrap">
+        <div id="healthbar-label">ENERGIA PORYGON-Z</div>
+        <div id="healthbar"><div id="healthbar-fill"></div></div>
+    </div>
+
+    <div id="message-center"><span id="message-main"></span><span class="sub" id="message-sub"></span></div>
+    <div class="hint">ESC per liberare il mouse</div>
+</div>
+
+<!-- Schermata di caricamento -->
+<div id="screen-loading" class="screen">
+    <div class="spinner"></div>
+    <div id="loadbar"><div id="loadbar-fill"></div></div>
+    <p>Caricamento del cyberspazio…</p>
+</div>
+
+<!-- Menu iniziale -->
+<div id="screen-menu" class="screen hidden">
+    <h1>PORYGON-<span class="accent">Z</span> · CYBER HUNT</h1>
+    <p>Porygon-Z è entrato nella griglia. Un branco di <strong>Gible</strong>, <strong>Gabite</strong>
+       e il temibile <strong>Garchomp</strong> stanno corrompendo il cyberspazio.
+       Spazzali via con il <strong>raggio di energia</strong>.</p>
+    <div class="controls-help">
+        <kbd>W A S D</kbd><span>Muovi Porygon-Z</span>
+        <kbd>Mouse</kbd><span>Mira (terza persona)</span>
+        <kbd>Click sx</kbd><span>Spara il raggio luminoso</span>
+        <kbd>Shift</kbd><span>Scatto</span>
+        <kbd>ESC</kbd><span>Rilascia il mouse</span>
+    </div>
+    <button class="btn" id="btn-start">Avvia caccia</button>
+</div>
+
+<!-- Game over -->
+<div id="screen-gameover" class="screen hidden">
+    <h1>GAME OVER</h1>
+    <p>Porygon-Z è stato sopraffatto dai Pokémon Drago.</p>
+    <div class="final-score">Punteggio finale: <span id="final-score">0</span></div>
+    <button class="btn" id="btn-retry">Riprova</button>
+</div>
+
+<!-- Vittoria -->
+<div id="screen-victory" class="screen hidden">
+    <h1>CYBERSPAZIO <span class="accent">RIPULITO</span></h1>
+    <p>Hai sconfitto Garchomp e tutte le ondate. La griglia è di nuovo al sicuro.</p>
+    <div class="final-score">Punteggio finale: <span id="final-score-win">0</span></div>
+    <button class="btn" id="btn-again">Gioca ancora</button>
+</div>
+
+<!-- ES module import map: Three.js servito in locale (nessuna dipendenza online) -->
+<script type="importmap">
+{
+    "imports": {
+        "three": "./lib/three.module.js",
+        "three/addons/": "./lib/jsm/"
+    }
+}
+</script>
+<script type="module" src="./js/main.js"></script>
+</body>
+</html>
