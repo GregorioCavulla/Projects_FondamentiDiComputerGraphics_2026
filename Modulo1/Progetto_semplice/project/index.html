@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Porygon - Progetto Modulo 1</title>
+
+    <style>
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            overflow: hidden;
+            background: #000;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        canvas { display: block; width: 100%; height: 100%; }
+
+        /* ---- HUD minimale in basso ---- */
+        #hud {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            align-items: stretch;
+        }
+        #dialog-box {
+            background: rgba(255, 255, 255, 0.9);
+            border: 4px solid #444;
+            border-radius: 8px;
+            padding: 12px 16px;
+            min-width: 320px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            display: flex;
+            align-items: center;
+        }
+        #buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            justify-content: center;
+        }
+        #hud button {
+            font-family: inherit;
+            font-size: 15px;
+            font-weight: bold;
+            padding: 8px 14px;
+            border: 3px solid #444;
+            border-radius: 8px;
+            background: #eee;
+            cursor: pointer;
+        }
+        #hud button:hover { background: #ffea00; }
+        #hud button.hidden { display: none; }
+
+        /* ---- Badge foto studente (OBBLIGATORIO da requisiti) ---- */
+        .photo-badge {
+            position: absolute;
+            top: 20px; right: 20px;
+            width: 120px; height: 160px;
+            background: rgba(255, 255, 255, 0.85);
+            border: 3px solid #666;
+            border-radius: 5px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        .photo-badge img {
+            width: 90px; height: 90px;
+            background: #ccc;
+            border: 2px solid #333;
+            margin-bottom: 10px;
+            object-fit: cover;
+        }
+        .photo-badge .badge-text {
+            font-size: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+    </style>
+
+    <!-- Librerie consentite (tassative) -->
+    <script src="lib/webgl-utils.js"></script>
+    <script src="lib/m4.js"></script>
+    <script src="lib/glm_utils.js"></script>
+    <script src="lib/mesh_utils.js"></script>
+    <script src="lib/dat.gui.js"></script>
+
+    <!-- ============================================================= -->
+    <!-- SHADER                                                        -->
+    <!-- ============================================================= -->
+
+    <!-- Sfondo: solo colore piatto (griglia/stanza) -->
+    <script id="grid-vertex-shader" type="x-shader/x-vertex">
+        attribute vec4 a_position;
+        uniform mat4 u_world;
+        uniform mat4 u_view;
+        uniform mat4 u_projection;
+        void main() {
+            gl_Position = u_projection * u_view * u_world * a_position;
+        }
+    </script>
+    <script id="grid-fragment-shader" type="x-shader/x-fragment">
+        precision mediump float;
+        uniform vec4 u_color;
+        void main() { gl_FragColor = u_color; }
+    </script>
+
+    <!-- Porygon 1: colore solido con luce semplice -->
+    <script id="color-vertex-shader" type="x-shader/x-vertex">
+        attribute vec4 a_position;
+        attribute vec3 a_normal;
+        uniform mat4 u_world;
+        uniform mat4 u_view;
+        uniform mat4 u_projection;
+        varying vec3 v_normal;
+        void main() {
+            gl_Position = u_projection * u_view * u_world * a_position;
+            v_normal = mat3(u_world) * a_normal;
+        }
+    </script>
+    <script id="color-fragment-shader" type="x-shader/x-fragment">
+        precision mediump float;
+        varying vec3 v_normal;
+        uniform vec3 u_reverseLightDirection;
+        uniform vec4 u_color;
+        void main() {
+            vec3 normal = normalize(v_normal);
+            float light = max(dot(normal, u_reverseLightDirection), 0.0);
+            gl_FragColor = u_color;
+            gl_FragColor.rgb *= (light * 0.7 + 0.3);
+        }
+    </script>
+
+    <!-- Porygon 2: texture con luce semplice -->
+    <script id="vertex-shader" type="x-shader/x-vertex">
+        attribute vec4 a_position;
+        attribute vec3 a_normal;
+        attribute vec2 a_texcoord;
+        uniform mat4 u_world;
+        uniform mat4 u_view;
+        uniform mat4 u_projection;
+        varying vec3 v_normal;
+        varying vec2 v_texcoord;
+        void main() {
+            gl_Position = u_projection * u_view * u_world * a_position;
+            v_normal = mat3(u_world) * a_normal;
+            v_texcoord = a_texcoord;
+        }
+    </script>
+    <script id="fragment-shader" type="x-shader/x-fragment">
+        precision mediump float;
+        varying vec3 v_normal;
+        varying vec2 v_texcoord;
+        uniform vec3 u_reverseLightDirection;
+        uniform sampler2D u_texture;
+        void main() {
+            vec3 normal = normalize(v_normal);
+            float light = dot(normal, u_reverseLightDirection);
+            vec4 texColor = texture2D(u_texture, v_texcoord);
+            if (texColor.a < 0.1) discard;
+            gl_FragColor = texColor;
+            gl_FragColor.rgb *= (light * 0.7 + 0.3);
+        }
+    </script>
+
+    <!-- Sfondo: fondale 2D a schermo intero (immagine dell'ambientazione) -->
+    <script id="backdrop-vertex-shader" type="x-shader/x-vertex">
+        attribute vec2 a_position;
+        attribute vec2 a_texcoord;
+        uniform vec2 u_uvScale;
+        varying vec2 v_texcoord;
+        void main() {
+            // Adattamento "cover": scalo le UV attorno al centro (0.5, 0.5).
+            v_texcoord = (a_texcoord - 0.5) * u_uvScale + 0.5;
+            // z = 1.0 -> sempre sul piano lontano (dietro il modello).
+            gl_Position = vec4(a_position, 1.0, 1.0);
+        }
+    </script>
+    <script id="backdrop-fragment-shader" type="x-shader/x-fragment">
+        precision mediump float;
+        uniform sampler2D u_backdrop;
+        varying vec2 v_texcoord;
+        void main() {
+            gl_FragColor = vec4(texture2D(u_backdrop, v_texcoord).rgb, 1.0);
+        }
+    </script>
+
+    <script src="porygon1_data.js"></script>
+    <script src="camera.js"></script>
+    <script src="skybox.js"></script>
+    <script src="main.js"></script>
+</head>
+<body onload="main()">
+    <canvas id="webgl-canvas"></canvas>
+
+    <!-- HUD: dialog + pulsanti che fanno avanzare il flusso -->
+    <div id="hud">
+        <div id="dialog-box">Premi AVVIA per iniziare.</div>
+        <div id="buttons">
+            <button id="btn-start">AVVIA</button>
+            <button id="btn-evolve" class="hidden">EVOLVI</button>
+            <button id="btn-wire">WIREFRAME</button>
+            <button id="btn-bg">SFONDO</button>
+        </div>
+    </div>
+
+    <!-- Foto studente (obbligatoria dai requisiti d'esame) -->
+    <div class="photo-badge">
+        <img src="foto_studente.jpg" alt="Foto studente"
+             onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\'%3E%3Crect width=\'100\' height=\'100\' fill=\'%23ddd\'/%3E%3Ctext x=\'50\' y=\'50\' font-family=\'Arial\' font-size=\'12\' text-anchor=\'middle\' dominant-baseline=\'middle\'%3EFoto%3C/text%3E%3C/svg%3E'"/>
+        <div class="badge-text">Gregorio Cavulla<br>Matr. 0001189588</div>
+    </div>
+</body>
+</html>
