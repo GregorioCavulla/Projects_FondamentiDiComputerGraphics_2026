@@ -1,3 +1,14 @@
 # Vecchio progetto (versione iniziale generata): tenuto in locale ma fuori dalla repo
 Modulo1/Progetto_old/
 
+# File di configurazione di sistema (non parte della repo)
+.zshrc
+.bashrc
+.profile
+.zprofile
+.bash_profile
+.gitconfig
+.vscode/
+.idea/
+.ripgreprc
+.mcp.json
