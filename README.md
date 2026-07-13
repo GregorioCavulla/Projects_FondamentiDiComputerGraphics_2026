@@ -1,4 +1,15 @@
-# Projects · Fondamenti di Computer Graphics 2025/2026
+# Fondamenti di Computer Graphics — 2025/2026
+
+Progetti del corso di Fondamenti di Computer Graphics, Modulo 1 e Modulo 2.
+
+## Struttura
+
+- **[Modulo1/](Modulo1/)** — Progetto Porygon: WebGL, shader, animazioni e illuminazione
+- **[Modulo2/](Modulo2/)** — Progetti relativi al Modulo 2
+
+## Landing Page
+
+La [landing page](./index.html) fornisce accesso ai progetti e alla documentazione.
 
 Repository dei progetti del corso di **Fondamenti di Computer Graphics** (A.A. 2025/2026), suddivisi in due moduli.
 
